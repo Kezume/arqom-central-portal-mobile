@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       size: 82,
                       showHalo: true,
                       showText: true,
-                      repeat: true,
+                      repeat: false,
                     ),
                   ),
                 ),

@@ -978,7 +978,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Colors.transparent,
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(13),
-                                  onPressed: _isCheckingIn
+                                  onTap: _isCheckingIn
                                       ? null
                                       : () => _handleAttendance(true),
                                   child: Center(
@@ -1069,7 +1069,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: Colors.transparent,
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(13),
-                                      onPressed: _isCheckingOut
+                                      onTap: _isCheckingOut
                                           ? null
                                           : () => _handleAttendance(false),
                                       child: Center(
