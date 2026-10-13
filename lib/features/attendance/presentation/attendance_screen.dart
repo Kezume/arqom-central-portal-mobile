@@ -15,6 +15,7 @@ import '../../../core/widgets/live_clock_widget.dart';
 import '../../requests/presentation/izin_screen.dart';
 import '../data/attendance_service.dart';
 import 'attendance_history_screen.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -231,7 +232,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           smallSize: 8,
                           child: Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                          );
+                        },
                         visualDensity: VisualDensity.compact,
                       ),
                     ),

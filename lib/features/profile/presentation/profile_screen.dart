@@ -4,6 +4,7 @@ import '../../../core/widgets/artech_loading_widget.dart';
 import '../../../core/widgets/artech_pull_to_refresh.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../auth/data/auth_service.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -83,7 +84,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 10),
                         _buildMenuCard(
                           children: [
-                            _buildMenuItem(context, Icons.notifications_none, 'Notifikasi', onTap: () {}),
+                            _buildMenuItem(
+                              context,
+                              Icons.notifications_none,
+                              'Notifikasi',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                                );
+                              },
+                            ),
                             _buildDivider(),
                             _buildMenuItem(
                               context,

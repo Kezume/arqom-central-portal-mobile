@@ -17,6 +17,7 @@ import '../../requests/presentation/cuti_tahunan_screen.dart';
 import '../../requests/presentation/izin_screen.dart';
 import '../../requests/presentation/sakit_screen.dart';
 import '../../requests/presentation/kerja_lembur_screen.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -504,7 +505,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 size: 21,
               ),
             ),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
           ),
         ),
       ],
