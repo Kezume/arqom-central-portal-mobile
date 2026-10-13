@@ -16,22 +16,48 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   late final Future<bool> _authCheckFuture;
   Timer? _safetyTimer;
+  Timer? _taglineTimer;
   bool _isNavigating = false;
+  bool _showTagline = false;
+  bool _assetsPrecached = false;
 
   @override
   void initState() {
     super.initState();
-    // Run auth check in background while entrance animation plays
+    // Run authentication check in background concurrently with entrance animation
     _authCheckFuture = AuthService.checkProfile();
 
+    // Fade in brand tagline smoothly once the ring & symbol start appearing (~1.2s into entrance)
+    _taglineTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted) {
+        setState(() {
+          _showTagline = true;
+        });
+      }
+    });
+
     // Safety fallback timer so app never gets stuck under unforeseen edge-cases
-    _safetyTimer = Timer(const Duration(milliseconds: 4500), () {
+    _safetyTimer = Timer(const Duration(milliseconds: 5000), () {
       _handleAnimationCompleted();
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_assetsPrecached) {
+      _assetsPrecached = true;
+      // Precache all 4 ARTECH asset layers so animation frames render instantly without decode stutter
+      precacheImage(const AssetImage('logo/artech_ring.png'), context);
+      precacheImage(const AssetImage('logo/artech_symbol.png'), context);
+      precacheImage(const AssetImage('logo/artech_text.png'), context);
+      precacheImage(const AssetImage('logo/artech_full.png'), context);
+    }
+  }
+
+  @override
   void dispose() {
+    _taglineTimer?.cancel();
     _safetyTimer?.cancel();
     super.dispose();
   }
@@ -41,8 +67,9 @@ class _SplashScreenState extends State<SplashScreen> {
     _isNavigating = true;
     _safetyTimer?.cancel();
 
-    // Give a clear moment for the user to see the entire revealed logo before navigating
-    await Future.delayed(const Duration(milliseconds: 650));
+    // Let the user see and admire the complete, fully-revealed logo before transitioning
+    // Satisfies: "animasinya memunculkan keseluruhan terlebih dahulu baru masuk aplikasi"
+    await Future.delayed(const Duration(milliseconds: 750));
 
     bool isValid = false;
     try {
@@ -58,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 700),
+        transitionDuration: const Duration(milliseconds: 650),
         pageBuilder:
             (_, __, ___) =>
                 isValid ? const MainScaffold() : const LoginScreen(),
@@ -72,7 +99,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final logoSize = (screenWidth * 0.44).clamp(140.0, 180.0);
+    // Generous stage size matching min(84vw, 420px) proportion from the HTML prototype
+    final logoSize = (screenWidth * 0.74).clamp(240.0, 340.0);
 
     return Scaffold(
       body: Container(
@@ -96,39 +124,54 @@ class _SplashScreenState extends State<SplashScreen> {
             children: [
               const Spacer(flex: 3),
 
-              // Animated ARTECH Logo (Reveals ring, symbol, text completely first)
-              ArtechLoadingWidget(
-                size: logoSize,
-                showHalo: true,
-                repeat: false,
-                duration: const Duration(milliseconds: 3000),
-                onCompleted: _handleAnimationCompleted,
-              ),
-
-              const SizedBox(height: 28),
-
-              // Application Name & Subtitle
-              Text(
-                'CENTRAL PORTAL',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2.2,
+              // Animated ARTECH Logo Centerpiece (Sweep conic ring, symbol in, text in, halo glow, finish pulse)
+              Center(
+                child: ArtechLoadingWidget(
+                  size: logoSize,
+                  showHalo: true,
+                  showText: true,
+                  repeat: false,
+                  duration: const Duration(milliseconds: 2800),
+                  onCompleted: _handleAnimationCompleted,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'One platform for Arqom services',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w500,
+
+              const SizedBox(height: 20),
+
+              // Subdued Brand Subtitle & Tagline
+              AnimatedOpacity(
+                opacity: _showTagline ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeOut,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'CENTRAL PORTAL',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 3.2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'One platform for Arqom services',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.8,
+                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
               const Spacer(flex: 4),
 
-              // Footer branding
+              // Subtle footer version
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
@@ -136,7 +179,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     letterSpacing: 0.5,
-                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
                   ),
                 ),
               ),
