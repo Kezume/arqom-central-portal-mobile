@@ -255,9 +255,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Image.asset(
-                    'logo/favicon-removebg-preview.png',
+                    'logo/artech_symbol.png',
                     height: 24,
-                    color: Colors.white,
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) =>
                         const Icon(Icons.business, color: Colors.white, size: 22),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/artech_loading_widget.dart';
 import '../../navigation/presentation/main_scaffold.dart';
 
 import '../data/auth_service.dart';
@@ -71,29 +72,34 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Logo and Header
+              // Animated ARTECH Logo Header
               Center(
                 child: Container(
-                  width: 100,
-                  height: 100,
+                  width: 110,
+                  height: 110,
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 20,
+                        color: const Color(0x22FE961D),
+                        blurRadius: 24,
                         spreadRadius: 2,
-                        offset: const Offset(0, 5),
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 16,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                  child: Center(
-                    child: Image.asset(
-                      'logo/favicon-removebg-preview.png',
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.contain,
+                  child: const Center(
+                    child: ArtechLoadingWidget(
+                      size: 82,
+                      showHalo: true,
+                      showText: true,
+                      repeat: true,
                     ),
                   ),
                 ),
@@ -227,11 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(color: AppColors.onPrimary, strokeWidth: 2),
-                      )
+                    ? ArtechLoadingWidget.button(size: 20)
                     : const Text(
                         'Masuk',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

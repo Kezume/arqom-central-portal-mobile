@@ -41,6 +41,9 @@ class _SplashScreenState extends State<SplashScreen> {
     _isNavigating = true;
     _safetyTimer?.cancel();
 
+    // Give a clear moment for the user to see the entire revealed logo before navigating
+    await Future.delayed(const Duration(milliseconds: 650));
+
     bool isValid = false;
     try {
       isValid = await _authCheckFuture.timeout(
