@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../notifications/data/push_notification_service.dart';
 
 class AuthService {
   static const String baseUrl = 'https://arqomtechnology.cloud/api';
@@ -50,8 +51,6 @@ class AuthService {
         },
         body: jsonEncode({'identifier': identifier, 'password': password}),
       );
-      print(response.body);
-      print(response.statusCode);
 
       final data = jsonDecode(response.body);
 
@@ -64,6 +63,7 @@ class AuthService {
             await saveUserData(data['data']['user']);
           }
         }
+        PushNotificationService.syncDeviceToken();
         return {
           'success': true,
           'message': data['message'] ?? 'Login berhasil',
@@ -115,6 +115,7 @@ class AuthService {
 
   static Future<bool> logout() async {
     try {
+      await PushNotificationService.unregisterOnLogout();
       final token = await getToken();
       if (token != null) {
         await http

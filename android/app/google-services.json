@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "687533844078",
+    "project_id": "arqom-e2b17",
+    "storage_bucket": "arqom-e2b17.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687533844078:android:93384efab6a517bc2c687f",
+        "android_client_info": {
+          "package_name": "arqom_one.cloud"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkQ1QPDMJVxnJ1qRbu4b2TX525OzxMQyg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687533844078:android:93384efab6a517bc2c687f",
+        "android_client_info": {
+          "package_name": "com.example.central_portal_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkQ1QPDMJVxnJ1qRbu4b2TX525OzxMQyg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
