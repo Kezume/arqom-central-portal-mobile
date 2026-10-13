@@ -21,6 +21,11 @@ class _RequestsScreenState extends State<RequestsScreen> {
   int _selectedMainTab = 0; // 0: Pengajuan Saya, 1: Perlu Persetujuan (Inbox Atasan)
   String _selectedStatusFilter = 'Semua';
 
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  int _myRequestsLimit = 5;
+  int _approvalsLimit = 5;
+
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -41,6 +46,12 @@ class _RequestsScreenState extends State<RequestsScreen> {
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchData({bool silent = false}) async {
@@ -684,7 +695,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     _buildQuickCategories(context),
                     const SizedBox(height: 20),
                     _buildMainTabSelector(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
+                    _buildSearchBar(),
+                    const SizedBox(height: 14),
                     if (_selectedMainTab == 0) ...[
                       _buildStatusFilters(context),
                       const SizedBox(height: 14),
@@ -833,7 +846,10 @@ class _RequestsScreenState extends State<RequestsScreen> {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _selectedMainTab = 0),
+              onTap: () => setState(() {
+                _selectedMainTab = 0;
+                _myRequestsLimit = 5;
+              }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -878,7 +894,10 @@ class _RequestsScreenState extends State<RequestsScreen> {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _selectedMainTab = 1),
+              onTap: () => setState(() {
+                _selectedMainTab = 1;
+                _approvalsLimit = 5;
+              }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -934,6 +953,154 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _searchQuery.isNotEmpty ? AppColors.primary : const Color(0xFFE2E8F0),
+          width: _searchQuery.isNotEmpty ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF091E47).withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val;
+            _myRequestsLimit = 5;
+            _approvalsLimit = 5;
+          });
+        },
+        style: const TextStyle(fontSize: 13),
+        decoration: InputDecoration(
+          hintText: _selectedMainTab == 0
+              ? 'Cari no. pengajuan, jenis, alasan...'
+              : 'Cari nama staf, jenis permohonan...',
+          hintStyle: TextStyle(
+            fontSize: 12,
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            size: 20,
+            color: AppColors.onSurfaceVariant,
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.onSurfaceVariant),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                      _myRequestsLimit = 5;
+                      _approvalsLimit = 5;
+                    });
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationFooter({
+    required int totalCount,
+    required int currentLimit,
+    required VoidCallback onLoadMore,
+    required VoidCallback onShowAll,
+    required VoidCallback onCollapse,
+  }) {
+    final isCapped = totalCount > currentLimit;
+    final showingCount = isCapped ? currentLimit : totalCount;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.list_alt_rounded, size: 14, color: AppColors.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Text(
+                  'Menampilkan $showingCount dari $totalCount pengajuan',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isCapped) ...[
+                ElevatedButton.icon(
+                  onPressed: onLoadMore,
+                  icon: const Icon(Icons.expand_more_rounded, size: 18),
+                  label: Text('Muat 5 Lagi (${totalCount - currentLimit} tersisa)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: onShowAll,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  child: const Text('Semua'),
+                ),
+              ] else if (totalCount > 5) ...[
+                OutlinedButton.icon(
+                  onPressed: onCollapse,
+                  icon: const Icon(Icons.expand_less_rounded, size: 18),
+                  label: const Text('Ciutkan Kembali (Tampilkan 5)'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.onSurfaceVariant,
+                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -1176,7 +1343,10 @@ class _RequestsScreenState extends State<RequestsScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () {
-                setState(() => _selectedStatusFilter = filter);
+                setState(() {
+                  _selectedStatusFilter = filter;
+                  _myRequestsLimit = 5;
+                });
                 _fetchData();
               },
               child: AnimatedContainer(
@@ -1203,6 +1373,20 @@ class _RequestsScreenState extends State<RequestsScreen> {
         }).toList(),
       ),
     );
+  }
+
+  List<RequestItem> _getFilteredMyRequests() {
+    if (_searchQuery.trim().isEmpty) return _myRequests;
+    final query = _searchQuery.trim().toLowerCase();
+    return _myRequests.where((item) {
+      final matchesNum = item.requestNumber.toLowerCase().contains(query);
+      final matchesType = item.typeLabel.toLowerCase().contains(query);
+      final matchesTitle = item.title.toLowerCase().contains(query);
+      final matchesDesc = item.description.toLowerCase().contains(query);
+      final matchesStatus = item.effectiveDisplayStatus.toLowerCase().contains(query);
+      final matchesEmployee = (item.employee?.name ?? '').toLowerCase().contains(query);
+      return matchesNum || matchesType || matchesTitle || matchesDesc || matchesStatus || matchesEmployee;
+    }).toList();
   }
 
   Widget _buildMyRequestsList() {
@@ -1266,8 +1450,66 @@ class _RequestsScreenState extends State<RequestsScreen> {
       );
     }
 
+    final filtered = _getFilteredMyRequests();
+
+    if (filtered.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.search_off_rounded, size: 44, color: AppColors.outline),
+            const SizedBox(height: 10),
+            const Text('Pengajuan Tidak Ditemukan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 4),
+            Text(
+              'Tidak ada pengajuan yang cocok dengan pencarian "$_searchQuery".',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
+              child: const Text('Reset Pencarian'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final displayItems = filtered.take(_myRequestsLimit).toList();
+
     return Column(
-      children: _myRequests.map((item) => _buildMyRequestCard(item)).toList(),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...displayItems.map((item) => _buildMyRequestCard(item)),
+        _buildPaginationFooter(
+          totalCount: filtered.length,
+          currentLimit: _myRequestsLimit,
+          onLoadMore: () {
+            setState(() {
+              _myRequestsLimit += 5;
+            });
+          },
+          onShowAll: () {
+            setState(() {
+              _myRequestsLimit = filtered.length;
+            });
+          },
+          onCollapse: () {
+            setState(() {
+              _myRequestsLimit = 5;
+            });
+          },
+        ),
+      ],
     );
   }
 
@@ -1632,6 +1874,19 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
   }
 
+  List<RequestItem> _getFilteredPendingApprovals() {
+    if (_searchQuery.trim().isEmpty) return _pendingApprovals;
+    final query = _searchQuery.trim().toLowerCase();
+    return _pendingApprovals.where((item) {
+      final matchesNum = item.requestNumber.toLowerCase().contains(query);
+      final matchesType = item.typeLabel.toLowerCase().contains(query);
+      final matchesEmployee = (item.employee?.name ?? '').toLowerCase().contains(query);
+      final matchesTitle = item.title.toLowerCase().contains(query);
+      final matchesDesc = item.description.toLowerCase().contains(query);
+      return matchesNum || matchesType || matchesEmployee || matchesTitle || matchesDesc;
+    }).toList();
+  }
+
   Widget _buildApprovalsList() {
     if (_isLoading) {
       return ArtechLoadingWidget.page(
@@ -1663,8 +1918,66 @@ class _RequestsScreenState extends State<RequestsScreen> {
       );
     }
 
+    final filtered = _getFilteredPendingApprovals();
+
+    if (filtered.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.search_off_rounded, size: 44, color: AppColors.outline),
+            const SizedBox(height: 10),
+            const Text('Persetujuan Tidak Ditemukan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 4),
+            Text(
+              'Tidak ada permohonan yang cocok dengan pencarian "$_searchQuery".',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
+              child: const Text('Reset Pencarian'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final displayItems = filtered.take(_approvalsLimit).toList();
+
     return Column(
-      children: _pendingApprovals.map((item) => _buildApprovalCard(item)).toList(),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...displayItems.map((item) => _buildApprovalCard(item)),
+        _buildPaginationFooter(
+          totalCount: filtered.length,
+          currentLimit: _approvalsLimit,
+          onLoadMore: () {
+            setState(() {
+              _approvalsLimit += 5;
+            });
+          },
+          onShowAll: () {
+            setState(() {
+              _approvalsLimit = filtered.length;
+            });
+          },
+          onCollapse: () {
+            setState(() {
+              _approvalsLimit = 5;
+            });
+          },
+        ),
+      ],
     );
   }
 
