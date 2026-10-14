@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/artech_loading_widget.dart';
 import '../../data/models/performance_models.dart';
@@ -208,13 +209,21 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                 children: [
                   Text(
                     'Hierarki Target',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: const Color(0xFF0F172A),
+                    ),
                   ),
                   Text(
                     'Main ➔ Weekly ➔ Daily Target',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 10),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -223,11 +232,14 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
             ElevatedButton.icon(
               onPressed: () => _openAddModal(),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Tambah Target', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              label: Text(
+                'Tambah Target',
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: const Color(0xFF0037B0),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -249,17 +261,28 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.calendar_month, color: AppColors.primary, size: 20),
+          const Icon(Icons.calendar_month_rounded, color: Color(0xFF0037B0), size: 20),
           const SizedBox(width: 10),
           Text(
             'Periode:',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.onSurfaceVariant),
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              color: const Color(0xFF64748B),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -270,10 +293,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                     ? _selectedPeriod
                     : (data.availablePeriods.isNotEmpty ? data.availablePeriods.first : null),
                 isDense: true,
-                style: const TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
                 ),
                 items: data.availablePeriods.map((period) {
                   return DropdownMenuItem<String>(
@@ -308,8 +331,8 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            AppColors.primary,
-            AppColors.primaryContainer,
+            Color(0xFF0037B0),
+            Color(0xFF155DFC),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -317,7 +340,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.25),
+            color: const Color(0xFF0037B0).withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -334,10 +357,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                   'Ringkasan Progres Bulanan',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -350,9 +373,9 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                 ),
                 child: Text(
                   '${percent.toStringAsFixed(0)}%',
-                  style: const TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     fontSize: 13,
                   ),
                 ),
@@ -375,7 +398,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
               _buildSummaryStat(
                 label: 'Target Utama',
                 value: summary.totalMain.toString(),
-                icon: Icons.star_border,
+                icon: Icons.star_border_rounded,
               ),
               Container(width: 1, height: 32, color: Colors.white24),
               _buildSummaryStat(
@@ -413,9 +436,9 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                 child: Text(
                   value,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     fontSize: 16,
                   ),
                 ),
@@ -425,9 +448,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               color: Colors.white70,
               fontSize: 10,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -446,16 +470,17 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          color: const Color(0xFFE2E8F0),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -485,10 +510,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: const Color(0xFF0037B0).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.flag_rounded, color: AppColors.primary, size: 18),
+                        child: const Icon(Icons.flag_rounded, color: Color(0xFF0037B0), size: 18),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -504,46 +529,46 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                                    color: const Color(0xFF0037B0).withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'MAIN TARGET',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: const Color(0xFF0037B0),
                                       fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.4,
                                     ),
                                   ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: priorityColor.withValues(alpha: 0.15),
+                                    color: priorityColor.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     main.priority.toUpperCase(),
-                                    style: TextStyle(
+                                    style: GoogleFonts.plusJakartaSans(
                                       color: priorityColor,
                                       fontSize: 9,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withValues(alpha: 0.15),
+                                    color: statusColor.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     _getStatusLabel(main.status),
-                                    style: TextStyle(
+                                    style: GoogleFonts.plusJakartaSans(
                                       color: statusColor,
                                       fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ),
@@ -552,21 +577,27 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                             const SizedBox(height: 6),
                             Text(
                               main.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: AppColors.onSurface,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5,
+                                color: const Color(0xFF0F172A),
                               ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.onSurfaceVariant),
+                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF64748B)),
                         onPressed: () => _openEditModal(main),
                         visualDensity: VisualDensity.compact,
                         padding: const EdgeInsets.all(4),
                         constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        color: const Color(0xFF64748B),
+                        size: 22,
                       ),
                     ],
                   ),
@@ -575,8 +606,9 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
+                        color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -586,7 +618,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                           Expanded(
                             child: Text(
                               'Hasil diharapkan: ${main.expectedResults}',
-                              style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
                             ),
                           ),
                         ],
@@ -597,20 +629,15 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.person_outline, size: 14, color: AppColors.onSurfaceVariant),
+                        const Icon(Icons.person_outline, size: 14, color: Color(0xFF64748B)),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             'PIC: ${main.picName}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
                           ),
-                        ),
-                        Icon(
-                          isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                          color: AppColors.onSurfaceVariant,
-                          size: 20,
                         ),
                       ],
                     ),
@@ -622,10 +649,16 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
 
           // Weekly Targets Children (Expandable)
           if (isExpanded) ...[
-            const Divider(height: 1),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
             Container(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-              color: AppColors.surfaceContainerLowest,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -634,10 +667,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       Expanded(
                         child: Text(
                           'Weekly Target (${main.children.length})',
-                          style: const TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF475569),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -646,9 +679,12 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       TextButton.icon(
                         onPressed: () => _openAddModal(level: 'weekly', parentId: main.id),
                         icon: const Icon(Icons.add, size: 14),
-                        label: const Text('Tambah Pekanan', style: TextStyle(fontSize: 11)),
+                        label: Text(
+                          'Tambah Pekanan',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
                         style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
+                          foregroundColor: const Color(0xFF0037B0),
                           visualDensity: VisualDensity.compact,
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         ),
@@ -661,7 +697,11 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
                         'Belum ada target mingguan untuk target utama ini.',
-                        style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.outline),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: const Color(0xFF94A3B8),
+                        ),
                       ),
                     )
                   else
@@ -681,11 +721,18 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -723,10 +770,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                                 ),
                                 child: Text(
                                   weekly.priority.toUpperCase(),
-                                  style: TextStyle(
+                                  style: GoogleFonts.plusJakartaSans(
                                     color: priorityColor,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
@@ -738,10 +785,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                                 ),
                                 child: Text(
                                   _getStatusLabel(weekly.status),
-                                  style: TextStyle(
+                                  style: GoogleFonts.plusJakartaSans(
                                     color: statusColor,
                                     fontSize: 9,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
@@ -752,7 +799,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                           onTap: () => _openEditModal(weekly),
                           child: const Padding(
                             padding: EdgeInsets.all(4),
-                            child: Icon(Icons.edit, size: 14, color: AppColors.onSurfaceVariant),
+                            child: Icon(Icons.edit, size: 14, color: Color(0xFF64748B)),
                           ),
                         ),
                       ],
@@ -760,24 +807,24 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                     const SizedBox(height: 4),
                     Text(
                       weekly.title,
-                      style: const TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: AppColors.onSurface,
+                        fontSize: 12.5,
+                        color: const Color(0xFF0F172A),
                       ),
                     ),
                     if (weekly.startDate != null || weekly.deadline != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today, size: 11, color: AppColors.outline),
+                          const Icon(Icons.calendar_today, size: 11, color: Color(0xFF94A3B8)),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               '${weekly.startDate ?? '-'} s/d ${weekly.deadline ?? '-'}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 10, color: AppColors.outline),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF64748B)),
                             ),
                           ),
                         ],
@@ -795,8 +842,9 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
+                color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -808,14 +856,25 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                           'Daily Targets (${weekly.children.length})',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.onSurfaceVariant),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF475569),
+                          ),
                         ),
                       ),
                       InkWell(
                         onTap: () => _openAddModal(level: 'daily', parentId: weekly.id),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          child: Text('+ Harian', style: TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Text(
+                            '+ Harian',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              color: const Color(0xFF0037B0),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -827,14 +886,14 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Row(
                         children: [
-                          const Icon(Icons.subdirectory_arrow_right, size: 12, color: AppColors.outline),
+                          const Icon(Icons.subdirectory_arrow_right, size: 12, color: Color(0xFF94A3B8)),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               daily.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 11),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF0F172A)),
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -846,7 +905,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                             ),
                             child: Text(
                               _getStatusLabel(daily.status),
-                              style: TextStyle(fontSize: 8, color: dStatusColor, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 8, color: dStatusColor, fontWeight: FontWeight.w700),
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -854,7 +913,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                             onTap: () => _openEditModal(daily),
                             child: const Padding(
                               padding: EdgeInsets.all(2),
-                              child: Icon(Icons.edit_outlined, size: 12, color: AppColors.outline),
+                              child: Icon(Icons.edit_outlined, size: 12, color: Color(0xFF94A3B8)),
                             ),
                           ),
                         ],
@@ -870,11 +929,15 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
               alignment: Alignment.centerRight,
               child: InkWell(
                 onTap: () => _openAddModal(level: 'daily', parentId: weekly.id),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 2),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text(
                     '+ Tambah Daily Target',
-                    style: TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      color: const Color(0xFF0037B0),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

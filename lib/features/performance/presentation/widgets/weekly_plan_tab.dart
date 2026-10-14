@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/artech_loading_widget.dart';
 import '../../data/models/performance_models.dart';
@@ -220,13 +221,13 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -235,7 +236,7 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppColors.primary),
+            icon: const Icon(Icons.chevron_left_rounded, color: Color(0xFF0037B0)),
             onPressed: () => _shiftWeek(-7),
             tooltip: 'Pekan Sebelumnya',
             visualDensity: VisualDensity.compact,
@@ -250,38 +251,49 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0037B0).withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF0037B0)),
+                    ),
+                    const SizedBox(width: 8),
                     Flexible(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
                             'Pekan Berjalan',
-                            style: TextStyle(fontSize: 10, color: AppColors.outline, fontWeight: FontWeight.w500),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              color: const Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           Text(
                             label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.onSurface,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, color: AppColors.outline, size: 18),
+                    const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B), size: 20),
                   ],
                 ),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: AppColors.primary),
+            icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF0037B0)),
             onPressed: () => _shiftWeek(7),
             tooltip: 'Pekan Berikutnya',
             visualDensity: VisualDensity.compact,
@@ -310,13 +322,21 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                 children: [
                   Text(
                     'Aktivitas & Sub-Task',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: const Color(0xFF0F172A),
+                    ),
                   ),
                   Text(
                     '${allItems.length} Rencana Terjadwal',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 10),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -325,11 +345,14 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
             ElevatedButton.icon(
               onPressed: _openAddPlanModal,
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Rencana Mandiri', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              label: Text(
+                'Rencana Mandiri',
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: const Color(0xFF0037B0),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -355,34 +378,39 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(10),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
           ),
           child: Row(
             children: [
-              const Icon(Icons.assignment_outlined, size: 16, color: AppColors.primary),
+              const Icon(Icons.assignment_outlined, size: 16, color: Color(0xFF0037B0)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   planGroup.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
               ),
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: const Color(0xFF0037B0).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  'Status: ${planGroup.approvalStatus.toUpperCase()}',
-                  style: const TextStyle(
+                  'STATUS: ${planGroup.approvalStatus.toUpperCase()}',
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0037B0),
                   ),
                 ),
               ),
@@ -405,14 +433,14 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -431,23 +459,23 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
+                      color: const Color(0xFF0037B0).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.link, size: 11, color: AppColors.primary),
+                        const Icon(Icons.link_rounded, size: 11, color: Color(0xFF0037B0)),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
                             item.monthlyTargetTitle!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0037B0),
                             ),
                           ),
                         ),
@@ -461,11 +489,11 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                       color: AppColors.secondary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'MANDIRI',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 9,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.secondary,
                       ),
                     ),
@@ -478,7 +506,7 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                   ),
                   child: Text(
                     item.priority.toUpperCase(),
-                    style: TextStyle(fontSize: 9, color: priorityColor, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 9, color: priorityColor, fontWeight: FontWeight.w700),
                   ),
                 ),
                 Container(
@@ -489,7 +517,7 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                   ),
                   child: Text(
                     _getStatusLabel(item.executionStatus),
-                    style: TextStyle(fontSize: 9, color: statusColor, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 9, color: statusColor, fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
@@ -499,7 +527,11 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
             // Title
             Text(
               item.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.onSurface),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+                color: const Color(0xFF0F172A),
+              ),
             ),
 
             // Details or Expected Output
@@ -507,7 +539,7 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
               const SizedBox(height: 4),
               Text(
                 item.details!,
-                style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
               ),
             ],
             if (item.expectedOutput != null && item.expectedOutput!.isNotEmpty) ...[
@@ -515,18 +547,19 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.outbox, size: 14, color: AppColors.secondary),
+                    const Icon(Icons.outbox_rounded, size: 14, color: AppColors.secondary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Target Output: ${item.expectedOutput}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
                       ),
                     ),
                   ],
@@ -544,9 +577,9 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                     child: LinearProgressIndicator(
                       value: percent / 100.0,
                       minHeight: 6,
-                      backgroundColor: AppColors.outlineVariant.withValues(alpha: 0.3),
+                      backgroundColor: const Color(0xFFE2E8F0),
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        percent == 100 ? Colors.green : AppColors.primary,
+                        percent == 100 ? Colors.green : const Color(0xFF0037B0),
                       ),
                     ),
                   ),
@@ -554,10 +587,10 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                 const SizedBox(width: 10),
                 Text(
                   '${percent.toStringAsFixed(0)}%',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: percent == 100 ? Colors.green : AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    color: percent == 100 ? Colors.green : const Color(0xFF0037B0),
                   ),
                 ),
               ],
@@ -568,14 +601,14 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
             Row(
               children: [
                 if (item.startDate != null || item.targetDate != null) ...[
-                  const Icon(Icons.event, size: 13, color: AppColors.outline),
+                  const Icon(Icons.event, size: 13, color: Color(0xFF94A3B8)),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       '${item.startDate ?? '-'} s/d ${item.targetDate ?? '-'}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, color: AppColors.outline),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF64748B)),
                     ),
                   ),
                 ] else
@@ -584,10 +617,13 @@ class _WeeklyPlanTabState extends State<WeeklyPlanTab> {
                 OutlinedButton.icon(
                   onPressed: () => _openUpdateItemModal(item),
                   icon: const Icon(Icons.edit_outlined, size: 13),
-                  label: const Text('Edit Rincian', style: TextStyle(fontSize: 11)),
+                  label: Text(
+                    'Edit Rincian',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary, width: 1),
+                    foregroundColor: const Color(0xFF0037B0),
+                    side: const BorderSide(color: Color(0xFF0037B0), width: 1),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     visualDensity: VisualDensity.compact,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

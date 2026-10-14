@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/artech_loading_widget.dart';
 import '../../data/models/performance_models.dart';
@@ -382,13 +383,13 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -397,7 +398,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppColors.primary),
+            icon: const Icon(Icons.chevron_left_rounded, color: Color(0xFF0037B0)),
             onPressed: () => _shiftWeek(-7),
             tooltip: 'Pekan Sebelumnya',
             visualDensity: VisualDensity.compact,
@@ -412,38 +413,49 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0037B0).withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF0037B0)),
+                    ),
+                    const SizedBox(width: 8),
                     Flexible(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
                             'Pekan Evaluasi',
-                            style: TextStyle(fontSize: 10, color: AppColors.outline, fontWeight: FontWeight.w500),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              color: const Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           Text(
                             label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.onSurface,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, color: AppColors.outline, size: 18),
+                    const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B), size: 20),
                   ],
                 ),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: AppColors.primary),
+            icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF0037B0)),
             onPressed: () => _shiftWeek(7),
             tooltip: 'Pekan Berikutnya',
             visualDensity: VisualDensity.compact,
@@ -477,19 +489,19 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.primaryContainer.withValues(alpha: 0.08),
+            color: const Color(0xFF0037B0).withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+            border: Border.all(color: const Color(0xFF0037B0).withValues(alpha: 0.2)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline, size: 18, color: AppColors.primary),
+              const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF0037B0)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Aturan Evaluasi: Jika status "Selesai", progres otomatis 100% dan isi rencana perbaikan. Jika "Sedang Berjalan", isi kendala yang dihadapi. Sistem akan otomatis menghitung ulang capaian Anda.',
-                  style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant, height: 1.3),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF475569), height: 1.35),
                 ),
               ),
             ],
@@ -503,7 +515,11 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           children: [
             Text(
               'Item Evaluasi Mingguan (${allItems.length})',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: const Color(0xFF0F172A),
+              ),
             ),
           ],
         ),
@@ -539,10 +555,10 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                         _isSubmitting
                             ? 'Menyimpan & Menghitung Ulang...'
                             : 'Simpan Sekaligus (${allItems.length} Item Evaluasi)',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: const Color(0xFF0037B0),
                         foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(48),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -569,9 +585,16 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -582,7 +605,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isUpcoming ? Icons.schedule : Icons.check_circle_outline,
+              isUpcoming ? Icons.schedule_rounded : Icons.check_circle_outline_rounded,
               color: isUpcoming ? AppColors.secondary : Colors.green,
               size: 18,
             ),
@@ -594,11 +617,11 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               children: [
                 Text(
                   'Jadwal Review Akhir Pekan',
-                  style: TextStyle(fontSize: 10, color: AppColors.outline, fontWeight: FontWeight.w500),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
                 ),
                 Text(
                   reviewDate,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                 ),
               ],
             ),
@@ -611,9 +634,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
             ),
             child: Text(
               isUpcoming ? 'UPCOMING' : 'AKTIF',
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 color: isUpcoming ? AppColors.secondary : Colors.green,
               ),
             ),
@@ -629,14 +652,14 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -652,15 +675,15 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                 CircularProgressIndicator(
                   value: avg / 100.0,
                   strokeWidth: 6,
-                  backgroundColor: AppColors.outlineVariant.withValues(alpha: 0.3),
+                  backgroundColor: const Color(0xFFE2E8F0),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    avg >= 80 ? Colors.green : AppColors.primary,
+                    avg >= 80 ? Colors.green : const Color(0xFF0037B0),
                   ),
                 ),
                 Center(
                   child: Text(
                     '${avg.toStringAsFixed(0)}%',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13, color: const Color(0xFF0F172A)),
                   ),
                 ),
               ],
@@ -672,26 +695,26 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Rata-rata Capaian Pekan Ini',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.onSurface),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     Text(
                       '${summary.completedItems} dari ${summary.totalItems} target selesai',
-                      style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: summary.totalItems > 0 ? (summary.completedItems / summary.totalItems) : 0,
-                    minHeight: 4,
-                    backgroundColor: AppColors.surfaceContainerLow,
+                    minHeight: 5,
+                    backgroundColor: const Color(0xFFF1F5F9),
                     valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
                   ),
                 ),
@@ -717,18 +740,19 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCompleted
               ? Colors.green.withValues(alpha: 0.5)
-              : AppColors.outlineVariant.withValues(alpha: 0.5),
+              : const Color(0xFFE2E8F0),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -748,7 +772,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                   ),
                   child: Text(
                     item.priority.toUpperCase(),
-                    style: TextStyle(fontSize: 9, color: priorityColor, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 9, color: priorityColor, fontWeight: FontWeight.w700),
                   ),
                 ),
                 const Spacer(),
@@ -759,14 +783,14 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                       color: Colors.green.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check, size: 12, color: Colors.green),
-                        SizedBox(width: 4),
+                        const Icon(Icons.check_rounded, size: 12, color: Colors.green),
+                        const SizedBox(width: 4),
                         Text(
                           '100% SELESAI',
-                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.green),
                         ),
                       ],
                     ),
@@ -776,13 +800,13 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
             const SizedBox(height: 6),
             Text(
               item.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.onSurface),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13.5, color: const Color(0xFF0F172A)),
             ),
             if (item.expectedOutput != null && item.expectedOutput!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 'Target: ${item.expectedOutput}',
-                style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
               ),
             ],
             const SizedBox(height: 12),
@@ -790,16 +814,16 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
             // Status Selector Tabs
             Text(
               'Evaluasi Status:',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.onSurfaceVariant),
+              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
             ),
             const SizedBox(height: 6),
             Row(
               children: [
-                _buildStatusChoice(item.id, 'completed', 'Selesai', Colors.green, Icons.check_circle_outline),
+                _buildStatusChoice(item.id, 'completed', 'Selesai', Colors.green, Icons.check_circle_outline_rounded),
                 const SizedBox(width: 6),
-                _buildStatusChoice(item.id, 'in_progress', 'Berjalan', AppColors.primaryContainer, Icons.timelapse),
+                _buildStatusChoice(item.id, 'in_progress', 'Berjalan', const Color(0xFF0037B0), Icons.timelapse_rounded),
                 const SizedBox(width: 6),
-                _buildStatusChoice(item.id, 'not_started', 'Belum', AppColors.onSurfaceVariant, Icons.cancel_outlined),
+                _buildStatusChoice(item.id, 'not_started', 'Belum', const Color(0xFF64748B), Icons.cancel_outlined),
               ],
             ),
             const SizedBox(height: 12),
@@ -809,13 +833,13 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Capaian Progres:',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.onSurfaceVariant),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
                   ),
                   Text(
                     '${progress.round()}%',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w800, color: const Color(0xFF0037B0)),
                   ),
                 ],
               ),
@@ -824,7 +848,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                 min: 1,
                 max: 99,
                 divisions: 98,
-                activeColor: AppColors.primary,
+                activeColor: const Color(0xFF0037B0),
                 onChanged: (val) {
                   setState(() {
                     _itemProgress[item.id] = val;
@@ -835,25 +859,25 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Capaian Progres:',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.onSurfaceVariant),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerLow,
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_outline, size: 11, color: AppColors.outline),
-                        SizedBox(width: 4),
+                        const Icon(Icons.lock_outline_rounded, size: 11, color: Color(0xFF64748B)),
+                        const SizedBox(width: 4),
                         Text(
                           '0% (Belum Dimulai)',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.onSurfaceVariant),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
                         ),
                       ],
                     ),
@@ -862,9 +886,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               ),
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  disabledThumbColor: AppColors.outlineVariant,
-                  disabledActiveTrackColor: AppColors.outlineVariant.withValues(alpha: 0.4),
-                  disabledInactiveTrackColor: AppColors.surfaceContainerLow,
+                  disabledThumbColor: const Color(0xFFCBD5E1),
+                  disabledActiveTrackColor: const Color(0xFFE2E8F0),
+                  disabledInactiveTrackColor: const Color(0xFFF8FAFC),
                 ),
                 child: const Slider(
                   value: 0,
@@ -880,9 +904,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               // Improvement Plan Field
               Text(
                 'Rencana Perbaikan (Improvement Plan)',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   color: Colors.green.shade800,
                 ),
               ),
@@ -892,20 +916,32 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                   controller: improvementController,
                   maxLines: 2,
                   onChanged: (_) => setState(() {}),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12),
                   decoration: InputDecoration(
                     hintText: 'Misal: Mulai integrasi lebih awal di awal pekan agar testing lebih maksimal...',
-                    hintStyle: const TextStyle(fontSize: 11),
+                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF0037B0), width: 1.5),
+                    ),
                   ),
                 ),
             ] else ...[
               // Obstacle Field
               Text(
                 'Kendala yang Dihadapi (Obstacle)',
-                style: const TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.error,
                 ),
               ),
@@ -915,11 +951,23 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                   controller: obstacleController,
                   maxLines: 2,
                   onChanged: (_) => setState(() {}),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12),
                   decoration: InputDecoration(
                     hintText: 'Misal: Menunggu konfirmasi aset dari tim desain atau akses kredensial gateway...',
-                    hintStyle: const TextStyle(fontSize: 11),
+                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF0037B0), width: 1.5),
+                    ),
                   ),
                 ),
             ],
@@ -940,28 +988,30 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
 
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => _onStatusChanged(itemId, value),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? activeColor.withValues(alpha: 0.15) : AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(8),
+            color: isSelected ? activeColor.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? activeColor : Colors.transparent,
+              color: isSelected ? activeColor : const Color(0xFFE2E8F0),
               width: 1.5,
             ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 14, color: isSelected ? activeColor : AppColors.outline),
+              Icon(icon, size: 14, color: isSelected ? activeColor : const Color(0xFF64748B)),
               const SizedBox(width: 4),
               Text(
                 label,
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? activeColor : AppColors.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? activeColor : const Color(0xFF64748B),
                 ),
               ),
             ],

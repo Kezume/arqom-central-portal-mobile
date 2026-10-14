@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/performance_service.dart';
 
@@ -57,10 +58,10 @@ class _WeeklyPlanFormModalState extends State<WeeklyPlanFormModal> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
+              primary: Color(0xFF0037B0),
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: AppColors.onSurface,
+              onSurface: Color(0xFF0F172A),
             ),
           ),
           child: child!,
@@ -99,14 +100,14 @@ class _WeeklyPlanFormModalState extends State<WeeklyPlanFormModal> {
         widget.onSuccess();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(res.message),
-            backgroundColor: AppColors.secondary,
+            content: Text(res.message, style: GoogleFonts.plusJakartaSans()),
+            backgroundColor: const Color(0xFF16A34A),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(res.message),
+            content: Text(res.message, style: GoogleFonts.plusJakartaSans()),
             backgroundColor: AppColors.error,
           ),
         );
@@ -122,163 +123,374 @@ class _WeeklyPlanFormModalState extends State<WeeklyPlanFormModal> {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: bottomInset + 20,
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Tambah Rencana Mandiri',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag Handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.onSurfaceVariant),
-                    onPressed: () => Navigator.pop(context),
-                    visualDensity: VisualDensity.compact,
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.all(4),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-
-              // Title
-              Text(
-                'Judul Rencana Mingguan',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  hintText: 'Misal: Riset library push notification Firebase',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Judul rencana tidak boleh kosong';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Expected Output
-              Text(
-                'Output yang Diharapkan (Expected Output)',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _expectedOutputController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  hintText: 'Misal: Dokumen perbandingan FCM vs OneSignal',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Output yang diharapkan tidak boleh kosong';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Prioritas (Full width to avoid horizontal overflow on narrow devices)
-              Text(
-                'Prioritas',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: _priority,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'low', child: Text('Rendah (Low)')),
-                  DropdownMenuItem(value: 'normal', child: Text('Normal')),
-                  DropdownMenuItem(value: 'high', child: Text('Tinggi (High)')),
-                  DropdownMenuItem(value: 'urgent', child: Text('Mendesak')),
-                ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _priority = val);
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Target Tanggal (Full width)
-              Text(
-                'Target Tanggal',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _targetDateController,
-                readOnly: true,
-                onTap: _pickDate,
-                decoration: InputDecoration(
-                  hintText: 'YYYY-MM-DD',
-                  suffixIcon: const Icon(Icons.calendar_today, size: 18),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Wajib diisi';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Simpan Rencana Mingguan',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0037B0).withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.playlist_add_check_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tambah Rencana Mandiri',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.date_range_rounded, size: 12, color: Color(0xFF64748B)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Pekan: ${widget.weekDate}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 22),
+                  onPressed: () => Navigator.pop(context),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+          // Scrollable Form Content
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 16,
+                  bottom: bottomInset + 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Title
+                    Row(
+                      children: [
+                        Text(
+                          'Judul Rencana Mingguan',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _titleController,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF0F172A),
+                      ),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0xFF64748B), size: 20),
+                        hintText: 'Misal: Riset konfigurasi payload Firebase FCM',
+                        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF0037B0), width: 1.5),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Judul rencana tidak boleh kosong';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Expected Output
+                    Row(
+                      children: [
+                        Text(
+                          'Output yang Diharapkan (Expected Output)',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _expectedOutputController,
+                      maxLines: 2,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: const Color(0xFF0F172A),
+                      ),
+                      decoration: InputDecoration(
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.only(bottom: 24),
+                          child: Icon(Icons.output_rounded, color: Color(0xFF64748B), size: 18),
+                        ),
+                        hintText: 'Misal: Dokumentasi implementasi service FCM siap diintegrasikan',
+                        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF0037B0), width: 1.5),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Output yang diharapkan tidak boleh kosong';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Prioritas (Selectable Chips)
+                    Text(
+                      'Prioritas',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildPriorityChip('low', 'Rendah', const Color(0xFF64748B), const Color(0xFFF1F5F9)),
+                        const SizedBox(width: 8),
+                        _buildPriorityChip('normal', 'Normal', const Color(0xFF0284C7), const Color(0xFFF0F9FF)),
+                        const SizedBox(width: 8),
+                        _buildPriorityChip('high', 'Tinggi', const Color(0xFFEA580C), const Color(0xFFFFF7ED)),
+                        const SizedBox(width: 8),
+                        _buildPriorityChip('urgent', 'Mendesak', const Color(0xFFDC2626), const Color(0xFFFEF2F2)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Target Tanggal
+                    Text(
+                      'Target Tanggal',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: _pickDate,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF0037B0)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _targetDateController.text.isNotEmpty
+                                    ? _targetDateController.text
+                                    : 'Pilih target tanggal...',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Submit Button
+                    GestureDetector(
+                      onTap: _isLoading ? null : _submit,
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0037B0).withValues(alpha: 0.28),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Simpan Rencana Mingguan',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriorityChip(String value, String label, Color color, Color bgLight) {
+    final isSelected = _priority == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _priority = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? bgLight : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? color : const Color(0xFFE2E8F0),
+              width: isSelected ? 1.6 : 1.0,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? color : const Color(0xFF475569),
+                ),
               ),
             ],
           ),

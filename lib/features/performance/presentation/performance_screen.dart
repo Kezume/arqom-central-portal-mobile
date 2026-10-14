@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/artech_pull_to_refresh.dart';
 import '../../auth/data/auth_service.dart';
+import '../../notifications/presentation/notifications_screen.dart';
+import '../../notifications/data/notifications_service.dart';
 import 'widgets/monthly_target_tab.dart';
 import 'widgets/weekly_plan_tab.dart';
 import 'widgets/weekly_review_tab.dart';
@@ -22,6 +25,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+    NotificationsService.refreshUnreadCount();
   }
 
   Future<void> _loadUserData() async {
@@ -39,6 +43,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     });
     await Future.wait([
       _loadUserData(),
+      NotificationsService.refreshUnreadCount(),
       Future.delayed(const Duration(milliseconds: 600)),
     ]);
   }
@@ -141,13 +146,14 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Kinerja Karyawan',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -155,43 +161,83 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
+                    // Frosted Notification Icon Button (Consistent with Home, Attendance, Requests)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(16),
+                        shape: BoxShape.circle,
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.22),
                           width: 1,
                         ),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.sync_rounded, color: Colors.white, size: 13),
-                          SizedBox(width: 4),
-                          Text(
-                            '3 Menu Terintegrasi',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: NotificationsService.unreadCountNotifier,
+                        builder: (context, unreadCount, _) {
+                          const iconWidget = Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          );
+
+                          return IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: unreadCount > 0
+                                ? const Badge(
+                                    backgroundColor: Color(0xFFEF4444),
+                                    smallSize: 8,
+                                    child: iconWidget,
+                                  )
+                                : iconWidget,
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                              );
+                              NotificationsService.refreshUnreadCount();
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Target Bulanan ➔ Weekly Plan ➔ Weekly Review',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.78),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '3 MENU TERINTEGRASI',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Target Bulanan • Weekly Plan • Weekly Review',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -208,31 +254,42 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         _userData?['department']?['name'] ??
         _userData?['division'] ??
         'Operasional';
+    final photoUrl = _userData?['profile_photo_url'] ??
+        _userData?['employee']?['profile_photo_url'] ??
+        'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF091E47).withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Row(
         children: [
+          // User Avatar with double polished border
           Container(
-            width: 42,
-            height: 42,
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.25), width: 1.5),
             ),
-            child: const Icon(Icons.person, color: AppColors.primary, size: 24),
+            child: CircleAvatar(
+              radius: 19,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              backgroundImage: NetworkImage(photoUrl),
+              onBackgroundImageError: (_, __) {},
+              child: photoUrl.isEmpty
+                  ? const Icon(Icons.person, color: AppColors.primary, size: 20)
+                  : null,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -244,23 +301,29 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     Flexible(
                       child: Text(
                         name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: const Color(0xFF0F172A),
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          role,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0037B0).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        role,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          color: const Color(0xFF0037B0),
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -269,7 +332,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 const SizedBox(height: 2),
                 Text(
                   division,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -285,8 +352,16 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -303,22 +378,31 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
 
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           setState(() {
             _selectedTabIndex = index;
           });
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isActive ? null : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
+                      color: const Color(0xFF0037B0).withValues(alpha: 0.28),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ]
@@ -326,11 +410,12 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
                 size: 16,
-                color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+                color: isActive ? Colors.white : const Color(0xFF64748B),
               ),
               const SizedBox(height: 3),
               Text(
@@ -338,10 +423,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                  color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10.5,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                  color: isActive ? Colors.white : const Color(0xFF64748B),
+                  letterSpacing: -0.2,
                 ),
               ),
             ],
