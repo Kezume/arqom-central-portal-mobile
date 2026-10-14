@@ -42,6 +42,16 @@ class _RequestsScreenState extends State<RequestsScreen> {
     'Dibatalkan',
   ];
 
+  String _selectedApprovalTypeFilter = 'Semua';
+  final List<String> _approvalTypeFilters = [
+    'Semua',
+    'Cuti',
+    'Izin',
+    'Sakit',
+    'Lembur',
+    'Dinas',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -692,17 +702,23 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildQuickCategories(context),
-                    const SizedBox(height: 20),
                     _buildMainTabSelector(),
-                    const SizedBox(height: 14),
-                    _buildSearchBar(),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     if (_selectedMainTab == 0) ...[
+                      _buildQuickCategories(context),
+                      const SizedBox(height: 18),
+                      _buildSearchBar(),
+                      const SizedBox(height: 12),
                       _buildStatusFilters(context),
                       const SizedBox(height: 14),
                       _buildMyRequestsList(),
                     ] else ...[
+                      _buildApprovalsHeaderBanner(),
+                      const SizedBox(height: 14),
+                      _buildSearchBar(),
+                      const SizedBox(height: 12),
+                      _buildApprovalTypeFilters(context),
+                      const SizedBox(height: 14),
                       _buildApprovalsList(),
                     ],
                   ],
@@ -836,35 +852,47 @@ class _RequestsScreenState extends State<RequestsScreen> {
   }
 
   Widget _buildMainTabSelector() {
+    final pendingCount = _pendingApprovals.length;
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFCBD5E1).withValues(alpha: 0.6)),
       ),
       child: Row(
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() {
-                _selectedMainTab = 0;
-                _myRequestsLimit = 5;
-              }),
+              onTap: () {
+                if (_selectedMainTab != 0) {
+                  setState(() {
+                    _selectedMainTab = 0;
+                    _myRequestsLimit = 5;
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                }
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: _selectedMainTab == 0 ? AppColors.surface : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
+                  color: _selectedMainTab == 0 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: _selectedMainTab == 0
                       ? [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
+                            color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                            blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
                         ]
                       : null,
+                  border: _selectedMainTab == 0
+                      ? Border.all(color: const Color(0xFFCBD5E1).withValues(alpha: 0.4), width: 1)
+                      : Border.all(color: Colors.transparent, width: 1),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -872,19 +900,20 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     Icon(
                       Icons.history_rounded,
                       size: 16,
-                      color: _selectedMainTab == 0 ? AppColors.primary : AppColors.onSurfaceVariant,
+                      color: _selectedMainTab == 0 ? AppColors.primary : const Color(0xFF64748B),
                     ),
                     const SizedBox(width: 6),
                     Flexible(
-                      child: Text(
-                        'Pengajuan Saya',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: _selectedMainTab == 0 ? FontWeight.bold : FontWeight.w500,
-                          color: _selectedMainTab == 0 ? AppColors.primary : AppColors.onSurfaceVariant,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Pengajuan Saya',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: _selectedMainTab == 0 ? FontWeight.w700 : FontWeight.w600,
+                            color: _selectedMainTab == 0 ? AppColors.primary : const Color(0xFF64748B),
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -894,25 +923,34 @@ class _RequestsScreenState extends State<RequestsScreen> {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() {
-                _selectedMainTab = 1;
-                _approvalsLimit = 5;
-              }),
+              onTap: () {
+                if (_selectedMainTab != 1) {
+                  setState(() {
+                    _selectedMainTab = 1;
+                    _approvalsLimit = 5;
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                }
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: _selectedMainTab == 1 ? AppColors.surface : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
+                  color: _selectedMainTab == 1 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: _selectedMainTab == 1
                       ? [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
+                            color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                            blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
                         ]
                       : null,
+                  border: _selectedMainTab == 1
+                      ? Border.all(color: const Color(0xFFCBD5E1).withValues(alpha: 0.4), width: 1)
+                      : Border.all(color: Colors.transparent, width: 1),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -920,32 +958,38 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     Icon(
                       Icons.inbox_rounded,
                       size: 16,
-                      color: _selectedMainTab == 1 ? AppColors.primary : AppColors.onSurfaceVariant,
+                      color: _selectedMainTab == 1 ? AppColors.primary : const Color(0xFF64748B),
                     ),
                     const SizedBox(width: 6),
                     Flexible(
-                      child: Text(
-                        'Perlu Persetujuan',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: _selectedMainTab == 1 ? FontWeight.bold : FontWeight.w500,
-                          color: _selectedMainTab == 1 ? AppColors.primary : AppColors.onSurfaceVariant,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Perlu Persetujuan',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: _selectedMainTab == 1 ? FontWeight.w700 : FontWeight.w600,
+                            color: _selectedMainTab == 1 ? AppColors.primary : const Color(0xFF64748B),
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (_pendingApprovals.isNotEmpty) ...[
+                    if (pendingCount > 0) ...[
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.error,
+                          color: const Color(0xFFEF4444),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          '${_pendingApprovals.length}',
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          '$pendingCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ],
@@ -955,6 +999,111 @@ class _RequestsScreenState extends State<RequestsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildApprovalsHeaderBanner() {
+    final count = _pendingApprovals.length;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF091E47).withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: count > 0
+                  ? const Color(0xFFFEF2F2)
+                  : const Color(0xFFF0FDF4),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              count > 0 ? Icons.pending_actions_rounded : Icons.check_circle_outline_rounded,
+              color: count > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Inbox Persetujuan Staf',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  count > 0
+                      ? '$count permohonan staf menunggu tindakan persetujuan'
+                      : 'Semua permohonan staf telah selesai diproses',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: count > 0 ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApprovalTypeFilters(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _approvalTypeFilters.map((filter) {
+          final isActive = _selectedApprovalTypeFilter == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedApprovalTypeFilter = filter;
+                  _approvalsLimit = 5;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.primary : AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isActive ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Text(
+                  filter,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                    color: isActive ? Colors.white : AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -1875,9 +2024,23 @@ class _RequestsScreenState extends State<RequestsScreen> {
   }
 
   List<RequestItem> _getFilteredPendingApprovals() {
-    if (_searchQuery.trim().isEmpty) return _pendingApprovals;
+    var list = _pendingApprovals;
+    if (_selectedApprovalTypeFilter != 'Semua') {
+      final filter = _selectedApprovalTypeFilter.toLowerCase();
+      list = list.where((item) {
+        final type = item.requestType.toLowerCase();
+        final label = item.typeLabel.toLowerCase();
+        if (filter == 'cuti') return type.contains('cuti') || label.contains('cuti');
+        if (filter == 'izin') return type.contains('izin') || label.contains('izin');
+        if (filter == 'sakit') return type.contains('sakit') || label.contains('sakit');
+        if (filter == 'lembur') return type.contains('lembur') || label.contains('lembur');
+        if (filter == 'dinas') return type.contains('dinas') || label.contains('dinas');
+        return type.contains(filter) || label.contains(filter);
+      }).toList();
+    }
+    if (_searchQuery.trim().isEmpty) return list;
     final query = _searchQuery.trim().toLowerCase();
-    return _pendingApprovals.where((item) {
+    return list.where((item) {
       final matchesNum = item.requestNumber.toLowerCase().contains(query);
       final matchesType = item.typeLabel.toLowerCase().contains(query);
       final matchesEmployee = (item.employee?.name ?? '').toLowerCase().contains(query);
