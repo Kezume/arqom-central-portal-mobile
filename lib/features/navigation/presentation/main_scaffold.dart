@@ -36,32 +36,34 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: AppColors.surfaceContainerLowest,
-          indicatorColor: AppColors.primary.withValues(alpha: 0.15),
-          surfaceTintColor: Colors.transparent,
-          labelTextStyle: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary);
-            }
-            return GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.onSurfaceVariant);
-          }),
-          iconTheme: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return const IconThemeData(color: AppColors.primary, size: 26);
-            }
-            return const IconThemeData(color: AppColors.onSurfaceVariant, size: 24);
-          }),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
-              ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
             ),
+          ],
+        ),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            backgroundColor: Colors.white,
+            indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+            surfaceTintColor: Colors.transparent,
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary);
+              }
+              return GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF64748B));
+            }),
+            iconTheme: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return const IconThemeData(color: AppColors.primary, size: 24);
+              }
+              return const IconThemeData(color: Color(0xFF94A3B8), size: 24);
+            }),
           ),
           child: NavigationBar(
             selectedIndex: _currentIndex,
@@ -71,27 +73,27 @@ class _MainScaffoldState extends State<MainScaffold> {
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
+                selectedIcon: Icon(Icons.home_rounded),
                 label: 'Beranda',
               ),
               NavigationDestination(
                 icon: Icon(Icons.history_toggle_off_outlined),
-                selectedIcon: Icon(Icons.history_toggle_off),
+                selectedIcon: Icon(Icons.history_toggle_off_rounded),
                 label: 'Kehadiran',
               ),
               NavigationDestination(
                 icon: Icon(Icons.insights_outlined),
-                selectedIcon: Icon(Icons.insights),
+                selectedIcon: Icon(Icons.insights_rounded),
                 label: 'Kinerja',
               ),
               NavigationDestination(
                 icon: Icon(Icons.event_available_outlined),
-                selectedIcon: Icon(Icons.event_available),
+                selectedIcon: Icon(Icons.event_available_rounded),
                 label: 'Pengajuan',
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
+                icon: Icon(Icons.person_outline_rounded),
+                selectedIcon: Icon(Icons.person_rounded),
                 label: 'Profil',
               ),
             ],

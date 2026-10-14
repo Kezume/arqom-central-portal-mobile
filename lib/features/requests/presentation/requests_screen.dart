@@ -9,6 +9,7 @@ import 'izin_screen.dart';
 import 'sakit_screen.dart';
 import 'dinas_luar_screen.dart';
 import 'kerja_lembur_screen.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 
 class RequestsScreen extends StatefulWidget {
   const RequestsScreen({super.key});
@@ -792,44 +793,68 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Pengajuan & Izin',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
+                    Row(
+                      children: [
+                        const Text(
+                          'Pengajuan & Izin',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified_user_outlined, color: Colors.white, size: 12),
+                              SizedBox(width: 4),
+                              Text(
+                                'Berjenjang',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(16),
+                        shape: BoxShape.circle,
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.22),
                           width: 1,
                         ),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified_user_outlined, color: Colors.white, size: 13),
-                          SizedBox(width: 4),
-                          Text(
-                            'Persetujuan Berjenjang',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      child: IconButton(
+                        icon: const Badge(
+                          backgroundColor: Color(0xFFEF4444),
+                          smallSize: 8,
+                          child: Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                          );
+                        },
+                        visualDensity: VisualDensity.compact,
                       ),
                     ),
                   ],
@@ -855,16 +880,25 @@ class _RequestsScreenState extends State<RequestsScreen> {
     final pendingCount = _pendingApprovals.length;
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFCBD5E1).withValues(alpha: 0.6)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
+          // Tab 0: Pengajuan Saya
           Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 if (_selectedMainTab != 0) {
                   setState(() {
@@ -876,42 +910,48 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 }
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: _selectedMainTab == 0 ? Colors.white : Colors.transparent,
+                  gradient: _selectedMainTab == 0
+                      ? const LinearGradient(
+                          colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: _selectedMainTab == 0 ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: _selectedMainTab == 0
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF0F172A).withValues(alpha: 0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            color: const Color(0xFF0037B0).withValues(alpha: 0.28),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
                           ),
                         ]
                       : null,
-                  border: _selectedMainTab == 0
-                      ? Border.all(color: const Color(0xFFCBD5E1).withValues(alpha: 0.4), width: 1)
-                      : Border.all(color: Colors.transparent, width: 1),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.history_rounded,
-                      size: 16,
-                      color: _selectedMainTab == 0 ? AppColors.primary : const Color(0xFF64748B),
+                      size: 18,
+                      color: _selectedMainTab == 0 ? Colors.white : const Color(0xFF64748B),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 7),
                     Flexible(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
                           'Pengajuan Saya',
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: _selectedMainTab == 0 ? FontWeight.w700 : FontWeight.w600,
-                            color: _selectedMainTab == 0 ? AppColors.primary : const Color(0xFF64748B),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: _selectedMainTab == 0 ? Colors.white : const Color(0xFF64748B),
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ),
@@ -921,8 +961,13 @@ class _RequestsScreenState extends State<RequestsScreen> {
               ),
             ),
           ),
+
+          const SizedBox(width: 6),
+
+          // Tab 1: Perlu Persetujuan
           Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 if (_selectedMainTab != 1) {
                   setState(() {
@@ -934,42 +979,48 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 }
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: _selectedMainTab == 1 ? Colors.white : Colors.transparent,
+                  gradient: _selectedMainTab == 1
+                      ? const LinearGradient(
+                          colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: _selectedMainTab == 1 ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: _selectedMainTab == 1
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF0F172A).withValues(alpha: 0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            color: const Color(0xFF0037B0).withValues(alpha: 0.28),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
                           ),
                         ]
                       : null,
-                  border: _selectedMainTab == 1
-                      ? Border.all(color: const Color(0xFFCBD5E1).withValues(alpha: 0.4), width: 1)
-                      : Border.all(color: Colors.transparent, width: 1),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.inbox_rounded,
-                      size: 16,
-                      color: _selectedMainTab == 1 ? AppColors.primary : const Color(0xFF64748B),
+                      size: 18,
+                      color: _selectedMainTab == 1 ? Colors.white : const Color(0xFF64748B),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 7),
                     Flexible(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
                           'Perlu Persetujuan',
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: _selectedMainTab == 1 ? FontWeight.w700 : FontWeight.w600,
-                            color: _selectedMainTab == 1 ? AppColors.primary : const Color(0xFF64748B),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: _selectedMainTab == 1 ? Colors.white : const Color(0xFF64748B),
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ),
@@ -977,17 +1028,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     if (pendingCount > 0) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444),
+                          color: _selectedMainTab == 1 ? Colors.white : const Color(0xFFEF4444),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           '$pendingCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                          style: TextStyle(
+                            color: _selectedMainTab == 1 ? const Color(0xFF0037B0) : Colors.white,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
                             height: 1.1,
                           ),
                         ),
