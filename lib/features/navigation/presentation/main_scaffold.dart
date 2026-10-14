@@ -44,10 +44,10 @@ class _MainScaffoldState extends State<MainScaffold> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
+        border: const Border(
           top: BorderSide(
-            color: const Color(0xFFE2E8F0).withValues(alpha: 0.85),
-            width: 1,
+            color: Color(0xFFF1F5F9),
+            width: 1.0,
           ),
         ),
         boxShadow: [
@@ -61,9 +61,8 @@ class _MainScaffoldState extends State<MainScaffold> {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 60,
+          height: 62,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(
                 index: 0,
@@ -115,66 +114,32 @@ class _MainScaffoldState extends State<MainScaffold> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _onItemTapped(index),
-          splashColor: AppColors.primary.withValues(alpha: 0.08),
+          splashColor: AppColors.primary.withValues(alpha: 0.05),
           highlightColor: Colors.transparent,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Top Indicator Line (YouTube / Twitter / LinkedIn style)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                width: isSelected ? 32 : 0,
-                height: 3,
-                decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? const LinearGradient(
-                          colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
-                        )
-                      : null,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFF0037B0).withValues(alpha: 0.45),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ]
-                      : null,
-                ),
+              // Sharp Icon
+              Icon(
+                isSelected ? activeIcon : outlineIcon,
+                size: 24,
+                color: isSelected ? AppColors.primary : const Color(0xFF64748B),
               ),
 
-              const Spacer(),
+              const SizedBox(height: 4),
 
-              // Icon with subtle animated scale
-              AnimatedScale(
-                scale: isSelected ? 1.08 : 1.0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                child: Icon(
-                  isSelected ? activeIcon : outlineIcon,
-                  size: 23,
-                  color: isSelected ? AppColors.primary : const Color(0xFF64748B),
-                ),
-              ),
-
-              const SizedBox(height: 3),
-
-              // Text Label
+              // Crisp Plus Jakarta Sans Label
               Text(
                 label,
-                style: GoogleFonts.outfit(
-                  fontSize: 10.5,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected ? AppColors.primary : const Color(0xFF64748B),
-                  letterSpacing: -0.1,
+                  letterSpacing: -0.2,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-
-              const SizedBox(height: 6),
             ],
           ),
         ),
