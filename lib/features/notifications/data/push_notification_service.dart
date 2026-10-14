@@ -200,7 +200,7 @@ class PushNotificationService {
     if (payload == null) return;
     try {
       final data = jsonDecode(payload) as Map<String, dynamic>;
-      if (kDebugMode) print('Notification response received: $data');
+      if (kDebugMode) print('Local notification payload diketuk: $data');
       final context = navigatorKey?.currentContext;
       if (context != null) {
         Navigator.push(
