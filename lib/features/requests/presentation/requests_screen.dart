@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/artech_loading_widget.dart';
 import '../../../core/widgets/artech_pull_to_refresh.dart';
@@ -797,9 +798,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Pengajuan & Izin',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             color: Colors.white,
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
@@ -817,14 +818,14 @@ class _RequestsScreenState extends State<RequestsScreen> {
                               width: 1,
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified_user_outlined, color: Colors.white, size: 12),
-                              SizedBox(width: 4),
+                              const Icon(Icons.verified_user_outlined, color: Colors.white, size: 12),
+                              const SizedBox(width: 4),
                               Text(
                                 'Berjenjang',
-                                style: TextStyle(
+                                style: GoogleFonts.plusJakartaSans(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -878,7 +879,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Kelola cuti, izin, sakit, lembur, dan dinas luar',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     color: Colors.white.withValues(alpha: 0.78),
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
@@ -963,7 +964,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         fit: BoxFit.scaleDown,
                         child: Text(
                           'Pengajuan Saya',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: _selectedMainTab == 0 ? Colors.white : const Color(0xFF64748B),
@@ -1032,7 +1033,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         fit: BoxFit.scaleDown,
                         child: Text(
                           'Perlu Persetujuan',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: _selectedMainTab == 1 ? Colors.white : const Color(0xFF64748B),
@@ -1051,7 +1052,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         ),
                         child: Text(
                           '$pendingCount',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             color: _selectedMainTab == 1 ? const Color(0xFF0037B0) : Colors.white,
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
@@ -1107,12 +1108,12 @@ class _RequestsScreenState extends State<RequestsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Inbox Persetujuan Staf',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: Color(0xFF0F172A),
+                    color: const Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1120,7 +1121,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   count > 0
                       ? '$count permohonan staf menunggu tindakan persetujuan'
                       : 'Semua permohonan staf telah selesai diproses',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     color: count > 0 ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
                     fontWeight: FontWeight.w600,
@@ -1153,18 +1154,34 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  color: isActive ? AppColors.primary : AppColors.surface,
+                  gradient: isActive
+                      ? const LinearGradient(
+                          colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isActive ? null : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isActive ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5),
+                    color: isActive ? Colors.transparent : const Color(0xFFE2E8F0),
                   ),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF0037B0).withValues(alpha: 0.22),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Text(
                   filter,
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                    color: isActive ? Colors.white : AppColors.onSurfaceVariant,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? Colors.white : const Color(0xFF64748B),
                   ),
                 ),
               ),
@@ -1178,16 +1195,16 @@ class _RequestsScreenState extends State<RequestsScreen> {
   Widget _buildSearchBar() {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: _searchQuery.isNotEmpty ? AppColors.primary : const Color(0xFFE2E8F0),
+          color: _searchQuery.isNotEmpty ? const Color(0xFF0037B0) : const Color(0xFFE2E8F0),
           width: _searchQuery.isNotEmpty ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF091E47).withValues(alpha: 0.03),
-            blurRadius: 10,
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -1201,23 +1218,23 @@ class _RequestsScreenState extends State<RequestsScreen> {
             _approvalsLimit = 5;
           });
         },
-        style: const TextStyle(fontSize: 13),
+        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0F172A)),
         decoration: InputDecoration(
           hintText: _selectedMainTab == 0
               ? 'Cari no. pengajuan, jenis, alasan...'
               : 'Cari nama staf, jenis permohonan...',
-          hintStyle: TextStyle(
+          hintStyle: GoogleFonts.plusJakartaSans(
             fontSize: 12,
-            color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+            color: const Color(0xFF94A3B8),
           ),
           prefixIcon: const Icon(
             Icons.search_rounded,
             size: 20,
-            color: AppColors.onSurfaceVariant,
+            color: Color(0xFF64748B),
           ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.onSurfaceVariant),
+                  icon: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {
@@ -1327,118 +1344,165 @@ class _RequestsScreenState extends State<RequestsScreen> {
     final canElevated = _meta?.canUseElevatedTypes ?? false;
     final role = _meta?.userRole;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
                 'Buat Pengajuan Baru',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (role != null && role.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: canElevated ? Colors.purple.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: const Color(0xFF0F172A),
                 ),
-                child: Text(
-                  'Akses: ${role.toUpperCase()}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: canElevated ? Colors.purple : Colors.blue,
+              ),
+              if (role != null && role.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: canElevated ? const Color(0xFFF3E8FF) : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Akses: ${role.toUpperCase()}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: canElevated ? const Color(0xFF7E22CE) : const Color(0xFF1D4ED8),
+                    ),
                   ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildQuickCategoryItem(
+                label: 'Cuti',
+                icon: Icons.beach_access_rounded,
+                bgColor: const Color(0xFFEFF6FF),
+                iconColor: const Color(0xFF1D4ED8),
+                onTap: () => _openForm(const CutiTahunanScreen()),
+              ),
+              const SizedBox(width: 6),
+              _buildQuickCategoryItem(
+                label: 'Izin',
+                icon: Icons.event_note_rounded,
+                bgColor: const Color(0xFFF0FDF4),
+                iconColor: const Color(0xFF15803D),
+                onTap: () => _openForm(const IzinScreen()),
+              ),
+              const SizedBox(width: 6),
+              _buildQuickCategoryItem(
+                label: 'Sakit',
+                icon: Icons.medical_services_rounded,
+                bgColor: const Color(0xFFFEF2F2),
+                iconColor: const Color(0xFFDC2626),
+                onTap: () => _openForm(const SakitScreen()),
+              ),
+              const SizedBox(width: 6),
+              _buildQuickCategoryItem(
+                label: 'Dinas Luar',
+                icon: Icons.flight_takeoff_rounded,
+                bgColor: canElevated ? const Color(0xFFF5F3FF) : const Color(0xFFF1F5F9),
+                iconColor: canElevated ? const Color(0xFF7C3AED) : const Color(0xFF94A3B8),
+                isLocked: !canElevated,
+                onTap: canElevated
+                    ? () => _openForm(const DinasLuarScreen())
+                    : () => _showElevatedRoleWarning('Perjalanan Dinas'),
+              ),
+              const SizedBox(width: 6),
+              _buildQuickCategoryItem(
+                label: 'Lembur',
+                icon: Icons.access_time_filled_rounded,
+                bgColor: canElevated ? const Color(0xFFFFF7ED) : const Color(0xFFF1F5F9),
+                iconColor: canElevated ? const Color(0xFFEA580C) : const Color(0xFF94A3B8),
+                isLocked: !canElevated,
+                onTap: canElevated
+                    ? () => _openForm(const KerjaLemburScreen())
+                    : () => _showElevatedRoleWarning('Kerja Lembur'),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickCategoryItem({
+    required String label,
+    required IconData icon,
+    required Color bgColor,
+    required Color iconColor,
+    required VoidCallback onTap,
+    bool isLocked = false,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 21),
+                ),
+                if (isLocked)
+                  Positioned(
+                    top: -3,
+                    right: -3,
+                    child: Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF94A3B8),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.lock_rounded, size: 9, color: Colors.white),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: isLocked ? const Color(0xFF94A3B8) : const Color(0xFF1E293B),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
-        // Row 1: Pengajuan Umum (Cuti, Izin, Sakit)
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _buildCategoryButton(
-                  context,
-                  'Libur Cuti',
-                  Icons.beach_access_rounded,
-                  AppColors.primaryContainer.withValues(alpha: 0.4),
-                  AppColors.primary,
-                  onTap: () => _openForm(const CutiTahunanScreen()),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildCategoryButton(
-                  context,
-                  'Izin',
-                  Icons.event_note_rounded,
-                  AppColors.secondaryContainer.withValues(alpha: 0.4),
-                  AppColors.secondary,
-                  onTap: () => _openForm(const IzinScreen()),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildCategoryButton(
-                  context,
-                  'Sakit',
-                  Icons.medical_services_rounded,
-                  AppColors.errorContainer.withValues(alpha: 0.4),
-                  AppColors.error,
-                  onTap: () => _openForm(const SakitScreen()),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Row 2: Pengajuan Khusus / Operasional (Dinas Luar, Lembur)
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _buildCategoryButton(
-                  context,
-                  'Perjalanan Dinas',
-                  Icons.flight_takeoff_rounded,
-                  canElevated ? AppColors.tertiaryContainer.withValues(alpha: 0.4) : Colors.grey.shade100,
-                  canElevated ? AppColors.tertiary : Colors.grey.shade400,
-                  isLocked: !canElevated,
-                  onTap: canElevated
-                      ? () => _openForm(const DinasLuarScreen())
-                      : () => _showElevatedRoleWarning('Perjalanan Dinas'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildCategoryButton(
-                  context,
-                  'Kerja Lembur',
-                  Icons.access_time_filled_rounded,
-                  canElevated ? Colors.indigo.withValues(alpha: 0.12) : Colors.grey.shade100,
-                  canElevated ? Colors.indigo : Colors.grey.shade400,
-                  isLocked: !canElevated,
-                  onTap: canElevated
-                      ? () => _openForm(const KerjaLemburScreen())
-                      : () => _showElevatedRoleWarning('Kerja Lembur'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1447,104 +1511,31 @@ class _RequestsScreenState extends State<RequestsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.lock_outline, color: AppColors.error, size: 22),
-            SizedBox(width: 8),
-            Text('Akses Khusus (403)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Icon(Icons.lock_outline, color: AppColors.error, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'Akses Khusus (403)',
+              style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Text(
           'Pengajuan $formName hanya dapat diajukan oleh akun minimal level Head (Head, Lead, Manager, Direktur).\n\nAkun Anda (${_meta?.userRole ?? "staff"}) hanya diizinkan mengajukan Cuti, Izin, dan Sakit.',
-          style: const TextStyle(fontSize: 13, height: 1.4),
+          style: GoogleFonts.plusJakartaSans(fontSize: 12.5, height: 1.4),
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: const Color(0xFF0037B0),
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Mengerti'),
+            child: Text('Mengerti', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryButton(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color bgColor,
-    Color iconColor, {
-    VoidCallback? onTap,
-    bool isLocked = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-                        child: Icon(icon, color: iconColor, size: 18),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        label,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                              color: isLocked ? AppColors.outline : null,
-                            ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (isLocked)
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.lock_rounded, size: 10, color: Colors.grey),
-                  ),
-                ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1569,18 +1560,34 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  color: isActive ? AppColors.primary : AppColors.surface,
+                  gradient: isActive
+                      ? const LinearGradient(
+                          colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isActive ? null : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isActive ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5),
+                    color: isActive ? Colors.transparent : const Color(0xFFE2E8F0),
                   ),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF0037B0).withValues(alpha: 0.22),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Text(
                   filter,
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                    color: isActive ? Colors.white : AppColors.onSurfaceVariant,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? Colors.white : const Color(0xFF64748B),
                   ),
                 ),
               ),
@@ -1733,15 +1740,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
     return GestureDetector(
       onTap: () => _showDetailBottomSheet(item),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
+              color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
@@ -1760,7 +1767,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     height: 38,
                     decoration: BoxDecoration(
                       color: item.typeColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(11),
                     ),
                     child: Icon(item.typeIcon, color: item.typeColor, size: 20),
                   ),
@@ -1771,23 +1778,35 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       children: [
                         Text(
                           item.typeLabel,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: const Color(0xFF0F172A),
+                          ),
                         ),
                         Text(
                           item.requestNumber,
-                          style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10.5,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         if (item.isParticipant && !item.isOwner) ...[
                           const SizedBox(height: 3),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.12),
+                              color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               'Peserta Kelompok (${item.employee?.name ?? "Koordinator"})',
-                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1D4ED8),
+                              ),
                             ),
                           ),
                         ],
@@ -1795,16 +1814,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                     decoration: BoxDecoration(
-                      color: item.statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      color: item.statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: item.statusColor.withValues(alpha: 0.25)),
                     ),
                     child: Text(
                       item.effectiveDisplayStatus,
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: item.statusColor,
                       ),
                     ),
@@ -1817,9 +1837,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1832,20 +1852,27 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.primary),
+                            const Icon(Icons.calendar_today_outlined, size: 13, color: Color(0xFF0037B0)),
                             const SizedBox(width: 6),
                             Text(
                               item.endDate != null && item.endDate != item.startDate
                                   ? '${item.startDate} s/d ${item.endDate}'
                                   : item.startDate,
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0F172A),
+                              ),
                             ),
                           ],
                         ),
                         if (item.startTime != null && item.endTime != null)
                           Text(
                             '(${item.startTime} - ${item.endTime})',
-                            style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: const Color(0xFF64748B),
+                            ),
                           ),
                       ],
                     ),
@@ -1853,12 +1880,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 13, color: AppColors.tertiary),
+                          const Icon(Icons.location_on_outlined, size: 13, color: Color(0xFF7C3AED)),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               item.location!,
-                              style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: const Color(0xFF475569),
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1875,26 +1905,34 @@ class _RequestsScreenState extends State<RequestsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerHigh,
+                                color: const Color(0xFFE2E8F0),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 item.parsedDetails!.tipeWaktu == 'menginap' ? 'Menginap' : 'Harian (PP)',
-                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.onSurfaceVariant),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF475569),
+                                ),
                               ),
                             ),
                           if (item.parsedDetails?.tipePeserta != null)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerHigh,
+                                color: const Color(0xFFE2E8F0),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 item.parsedDetails!.tipePeserta == 'kelompok'
                                     ? 'Kelompok (${item.parsedDetails!.peserta.length} Orang)'
                                     : 'Individu',
-                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.onSurfaceVariant),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF475569),
+                                ),
                               ),
                             ),
                         ],
@@ -1903,7 +1941,11 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     const SizedBox(height: 6),
                     Text(
                       item.description,
-                      style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.onSurface),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        color: const Color(0xFF334155),
+                        height: 1.35,
+                      ),
                     ),
                   ],
                 ),
@@ -1919,22 +1961,42 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton.icon(
+                    OutlinedButton.icon(
                       onPressed: () => _handleEditRequest(item),
-                      icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primary),
-                      label: const Text('Edit', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      style: TextButton.styleFrom(
+                      icon: const Icon(Icons.edit_outlined, size: 13, color: Color(0xFF0037B0)),
+                      label: Text(
+                        'Edit',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: const Color(0xFF0037B0),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        backgroundColor: const Color(0xFFEFF6FF),
                         visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       ),
                     ),
                     const SizedBox(width: 6),
-                    TextButton.icon(
+                    OutlinedButton.icon(
                       onPressed: () => _handleCancelRequest(item),
-                      icon: const Icon(Icons.cancel_outlined, size: 14, color: AppColors.error),
-                      label: const Text('Batalkan', style: TextStyle(fontSize: 11, color: AppColors.error)),
-                      style: TextButton.styleFrom(
+                      icon: const Icon(Icons.cancel_outlined, size: 13, color: Color(0xFFDC2626)),
+                      label: Text(
+                        'Batalkan',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: const Color(0xFFDC2626),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFFECACA)),
+                        backgroundColor: const Color(0xFFFEF2F2),
                         visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       ),
                     ),
@@ -1953,25 +2015,25 @@ class _RequestsScreenState extends State<RequestsScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.08),
+          color: const Color(0xFFF0FDF4),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
+          border: Border.all(color: const Color(0xFFBBF7D0)),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.verified, size: 18, color: Colors.green),
-            SizedBox(width: 8),
+            const Icon(Icons.verified_rounded, size: 18, color: Color(0xFF16A34A)),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Disetujui Otomatis',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF16A34A)),
                   ),
                   Text(
-                    'Level Manager HCGA / Direktur (Persetujuan instan tanpa verifikasi berjenjang)',
-                    style: TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
+                    'Level Manager HCGA / Direktur (Persetujuan instan)',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF64748B)),
                   ),
                 ],
               ),
@@ -1988,8 +2050,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1997,20 +2060,29 @@ class _RequestsScreenState extends State<RequestsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'ALUR PERSETUJUAN BERJENJANG',
-                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: AppColors.outline),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: const Color(0xFF64748B),
+                ),
               ),
               if (isHcgaOnly)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.15),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Direct HCGA',
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.secondary),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0037B0),
+                    ),
                   ),
                 ),
             ],
@@ -2022,7 +2094,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
             isHcgaOnly ? 'Dilewati (Langsung di bawah HCGA/Direksi)' : item.managerApproval?.note,
             item.managerApproval?.approvedBy,
           ),
-          const Divider(height: 12, thickness: 0.5),
+          const Divider(height: 12, thickness: 0.5, color: Color(0xFFE2E8F0)),
           _buildTimelineRow(
             '2. HCGA / HR Operations',
             hcgaStatus,
@@ -2039,17 +2111,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
     IconData icon;
     final lower = status.toLowerCase();
     if (lower.contains('setuju')) {
-      color = Colors.green;
-      icon = Icons.check_circle;
+      color = const Color(0xFF16A34A);
+      icon = Icons.check_circle_rounded;
     } else if (lower.contains('tolak')) {
-      color = AppColors.error;
-      icon = Icons.cancel;
+      color = const Color(0xFFDC2626);
+      icon = Icons.cancel_rounded;
     } else if (lower.contains('lewat')) {
-      color = AppColors.secondary;
+      color = const Color(0xFF0284C7);
       icon = Icons.fast_forward_rounded;
     } else {
-      color = AppColors.outline;
-      icon = Icons.schedule;
+      color = const Color(0xFF64748B);
+      icon = Icons.schedule_rounded;
     }
 
     return Row(
@@ -2067,21 +2139,38 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   Expanded(
                     child: Text(
                       role,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+                  Text(
+                    status,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
                 ],
               ),
               if (approver != null && approver.isNotEmpty) ...[
                 const SizedBox(height: 2),
-                Text('Oleh: $approver', style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant)),
+                Text(
+                  'Oleh: $approver',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF64748B)),
+                ),
               ],
               if (note != null && note.isNotEmpty) ...[
                 const SizedBox(height: 2),
-                Text('"$note"', style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: AppColors.onSurfaceVariant)),
+                Text(
+                  '"$note"',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 10, fontStyle: FontStyle.italic, color: const Color(0xFF64748B)),
+                ),
               ],
             ],
           ),
@@ -2213,15 +2302,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
 
   Widget _buildApprovalCard(RequestItem item) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -2235,11 +2324,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.primaryContainer,
+                  radius: 19,
+                  backgroundColor: const Color(0xFFEFF6FF),
                   child: Text(
                     (item.employee?.name.isNotEmpty == true) ? item.employee!.name[0].toUpperCase() : 'E',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0037B0),
+                      fontSize: 14,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -2249,24 +2342,37 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     children: [
                       Text(
                         item.employee?.name ?? 'Nama Karyawan',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: const Color(0xFF0F172A),
+                        ),
                       ),
                       Text(
                         '${item.employee?.position ?? "-"} • ${item.employee?.division ?? "-"}',
-                        style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5,
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                   decoration: BoxDecoration(
-                    color: item.typeColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    color: item.typeColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: item.typeColor.withValues(alpha: 0.25)),
                   ),
                   child: Text(
                     item.typeLabel,
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: item.typeColor),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: item.typeColor,
+                    ),
                   ),
                 ),
               ],
@@ -2277,9 +2383,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2287,20 +2393,28 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Icon(Icons.calendar_month, size: 13, color: AppColors.primary),
+                      const Icon(Icons.calendar_month_rounded, size: 14, color: Color(0xFF0037B0)),
                       const SizedBox(width: 6),
                       Text(
                         item.endDate != null && item.endDate != item.startDate
                             ? '${item.startDate} s/d ${item.endDate}'
                             : item.startDate,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     item.description,
-                    style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      color: const Color(0xFF334155),
+                      height: 1.35,
+                    ),
                   ),
                 ],
               ),
@@ -2313,10 +2427,18 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _handleReject(item),
-                    icon: const Icon(Icons.close, size: 16, color: AppColors.error),
-                    label: const Text('Tolak', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                    icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFDC2626)),
+                    label: Text(
+                      'Tolak',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFFDC2626),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
+                      side: const BorderSide(color: Color(0xFFFECACA)),
+                      backgroundColor: const Color(0xFFFEF2F2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
@@ -2326,10 +2448,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _handleApprove(item),
-                    icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                    label: const Text('Setujui', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    icon: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
+                    label: Text(
+                      'Setujui',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: const Color(0xFF16A34A),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 10),
