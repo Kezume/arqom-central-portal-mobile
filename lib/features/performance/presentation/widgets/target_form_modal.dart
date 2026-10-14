@@ -316,6 +316,30 @@ class _TargetFormModalState extends State<TargetFormModal> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 5),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF0037B0)),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                _level == 'main'
+                                    ? 'Target Utama: Sasaran bulanan (dapat menaungi target pekanan & harian)'
+                                    : _level == 'weekly'
+                                        ? 'Target Pekanan: Sasaran mingguan di bawah Target Utama'
+                                        : 'Target Harian: Rincian aktivitas harian di bawah Target Pekanan',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10.5,
+                                  color: const Color(0xFF475569),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 10),
                     ],
 
@@ -341,6 +365,13 @@ class _TargetFormModalState extends State<TargetFormModal> {
                           ),
                         )
                       else ...[
+                        Text(
+                          _level == 'weekly'
+                              ? 'Pilih Target Utama bulanan yang menaungi target pekan ini:'
+                              : 'Pilih Target Pekanan yang menaungi aktivitas harian ini:',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 4),
                         DropdownButtonFormField<int>(
                           value: currentParentId,
                           isExpanded: true,
