@@ -16,6 +16,7 @@ import '../../requests/presentation/izin_screen.dart';
 import '../data/attendance_service.dart';
 import 'attendance_history_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../notifications/data/notifications_service.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -37,6 +38,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       if (mounted) setState(() {});
     });
     _refreshData();
+    NotificationsService.refreshUnreadCount();
   }
 
 
@@ -226,19 +228,33 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           width: 1,
                         ),
                       ),
-                      child: IconButton(
-                        icon: const Badge(
-                          backgroundColor: Color(0xFFEF4444),
-                          smallSize: 8,
-                          child: Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: NotificationsService.unreadCountNotifier,
+                        builder: (context, unreadCount, _) {
+                          const iconWidget = Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          );
+
+                          return IconButton(
+                            icon: unreadCount > 0
+                                ? const Badge(
+                                    backgroundColor: Color(0xFFEF4444),
+                                    smallSize: 8,
+                                    child: iconWidget,
+                                  )
+                                : iconWidget,
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                              );
+                              NotificationsService.refreshUnreadCount();
+                            },
+                            visualDensity: VisualDensity.compact,
                           );
                         },
-                        visualDensity: VisualDensity.compact,
                       ),
                     ),
                   ],

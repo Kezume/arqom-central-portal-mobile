@@ -93,6 +93,7 @@ class PushNotificationService {
       // 1. Tangani notifikasi saat aplikasi di Foreground (Tampilkan banner mengambang)
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         _showForegroundNotification(message);
+        NotificationsService.refreshUnreadCount();
       });
 
       // 2. Tangani saat pop-up diketuk ketika aplikasi di Background

@@ -10,6 +10,7 @@ import 'sakit_screen.dart';
 import 'dinas_luar_screen.dart';
 import 'kerja_lembur_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../notifications/data/notifications_service.dart';
 
 class RequestsScreen extends StatefulWidget {
   const RequestsScreen({super.key});
@@ -57,6 +58,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
   void initState() {
     super.initState();
     _fetchData();
+    NotificationsService.refreshUnreadCount();
   }
 
   @override
@@ -842,19 +844,33 @@ class _RequestsScreenState extends State<RequestsScreen> {
                           width: 1,
                         ),
                       ),
-                      child: IconButton(
-                        icon: const Badge(
-                          backgroundColor: Color(0xFFEF4444),
-                          smallSize: 8,
-                          child: Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: NotificationsService.unreadCountNotifier,
+                        builder: (context, unreadCount, _) {
+                          const iconWidget = Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          );
+
+                          return IconButton(
+                            icon: unreadCount > 0
+                                ? const Badge(
+                                    backgroundColor: Color(0xFFEF4444),
+                                    smallSize: 8,
+                                    child: iconWidget,
+                                  )
+                                : iconWidget,
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                              );
+                              NotificationsService.refreshUnreadCount();
+                            },
+                            visualDensity: VisualDensity.compact,
                           );
                         },
-                        visualDensity: VisualDensity.compact,
                       ),
                     ),
                   ],

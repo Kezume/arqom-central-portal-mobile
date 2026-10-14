@@ -18,6 +18,7 @@ import '../../requests/presentation/izin_screen.dart';
 import '../../requests/presentation/sakit_screen.dart';
 import '../../requests/presentation/kerja_lembur_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../notifications/data/notifications_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -245,6 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _todayFuture = AttendanceService.getToday();
     _loadUserData();
     _loadDashboardData();
+    NotificationsService.refreshUnreadCount();
   }
 
   Future<void> _loadDashboardData() async {
@@ -494,21 +496,31 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 1,
             ),
           ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            icon: const Badge(
-              backgroundColor: Color(0xFFFF4848),
-              smallSize: 8,
-              child: Icon(
+          child: ValueListenableBuilder<int>(
+            valueListenable: NotificationsService.unreadCountNotifier,
+            builder: (context, unreadCount, _) {
+              const iconWidget = Icon(
                 Icons.notifications_none_rounded,
                 color: Colors.white,
                 size: 21,
-              ),
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+
+              return IconButton(
+                padding: EdgeInsets.zero,
+                icon: unreadCount > 0
+                    ? const Badge(
+                        backgroundColor: Color(0xFFFF4848),
+                        smallSize: 8,
+                        child: iconWidget,
+                      )
+                    : iconWidget,
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                  );
+                  NotificationsService.refreshUnreadCount();
+                },
               );
             },
           ),

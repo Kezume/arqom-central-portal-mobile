@@ -43,6 +43,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (res.success && res.data != null) {
           _notifications = res.data!;
           _unreadCount = res.unreadCount ?? _notifications.where((n) => !n.isRead).length;
+          NotificationsService.unreadCountNotifier.value = _unreadCount;
         } else {
           _errorMessage = res.message;
         }
@@ -57,6 +58,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (index != -1) {
           _notifications[index] = _notifications[index].copyWith(isRead: true);
           if (_unreadCount > 0) _unreadCount--;
+          NotificationsService.unreadCountNotifier.value = _unreadCount;
         }
       });
       await NotificationsService.markAsRead(item.id);
@@ -97,6 +99,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
         _unreadCount = 0;
+        NotificationsService.unreadCountNotifier.value = 0;
       });
       final success = await NotificationsService.markAllAsRead();
       if (!success && mounted) {

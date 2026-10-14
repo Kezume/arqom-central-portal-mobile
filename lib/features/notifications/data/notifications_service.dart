@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../auth/data/auth_service.dart';
 import 'models/notification_models.dart';
@@ -20,6 +21,9 @@ class NotificationsApiResponse<T> {
 }
 
 class NotificationsService {
+  /// Reactive notifier for unread notifications count across all screens
+  static final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
+
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getToken();
     final headers = {
@@ -139,6 +143,8 @@ class NotificationsService {
             ? decoded['unread_count'] as int
             : int.tryParse(decoded['unread_count']?.toString() ?? '') ?? 0;
 
+        unreadCountNotifier.value = unreadCount;
+
         return NotificationsApiResponse(
           success: true,
           message: 'Berhasil memuat notifikasi',
@@ -172,15 +178,24 @@ class NotificationsService {
 
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
+        int count = 0;
         if (decoded['unread_count'] is int) {
-          return decoded['unread_count'] as int;
+          count = decoded['unread_count'] as int;
+        } else {
+          count = int.tryParse(decoded['unread_count']?.toString() ?? '0') ?? 0;
         }
-        return int.tryParse(decoded['unread_count']?.toString() ?? '0') ?? 0;
+        unreadCountNotifier.value = count;
+        return count;
       }
-      return 0;
+      return unreadCountNotifier.value;
     } catch (_) {
-      return 0;
+      return unreadCountNotifier.value;
     }
+  }
+
+  /// Shortcut untuk sinkronisasi badge notifikasi dari latar belakang
+  static Future<int> refreshUnreadCount() async {
+    return await getUnreadCount();
   }
 
   /// 6.5 Tandai Satu Notifikasi Sudah Dibaca
@@ -196,7 +211,11 @@ class NotificationsService {
         // Fallback POST
         res = await http.post(uri, headers: headers);
       }
-      return res.statusCode == 200;
+      final isSuccess = res.statusCode == 200;
+      if (isSuccess && unreadCountNotifier.value > 0) {
+        unreadCountNotifier.value--;
+      }
+      return isSuccess;
     } catch (_) {
       return false;
     }
@@ -209,7 +228,11 @@ class NotificationsService {
       final uri = Uri.parse('${AuthService.baseUrl}/notifications/mark-all-read');
       final headers = await _getHeaders();
       final res = await http.post(uri, headers: headers);
-      return res.statusCode == 200;
+      final isSuccess = res.statusCode == 200;
+      if (isSuccess) {
+        unreadCountNotifier.value = 0;
+      }
+      return isSuccess;
     } catch (_) {
       return false;
     }
