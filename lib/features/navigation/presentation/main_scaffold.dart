@@ -36,66 +36,145 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            backgroundColor: Colors.white,
-            indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-            surfaceTintColor: Colors.transparent,
-            labelTextStyle: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary);
-              }
-              return GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF64748B));
-            }),
-            iconTheme: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return const IconThemeData(color: AppColors.primary, size: 24);
-              }
-              return const IconThemeData(color: Color(0xFF94A3B8), size: 24);
-            }),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: const Color(0xFFE2E8F0).withValues(alpha: 0.85),
+            width: 1,
           ),
-          child: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: _onItemTapped,
-            height: 68,
-            elevation: 0,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(
+                index: 0,
                 label: 'Beranda',
+                outlineIcon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
               ),
-              NavigationDestination(
-                icon: Icon(Icons.history_toggle_off_outlined),
-                selectedIcon: Icon(Icons.history_toggle_off_rounded),
+              _buildNavItem(
+                index: 1,
                 label: 'Kehadiran',
+                outlineIcon: Icons.history_toggle_off_outlined,
+                activeIcon: Icons.history_toggle_off_rounded,
               ),
-              NavigationDestination(
-                icon: Icon(Icons.insights_outlined),
-                selectedIcon: Icon(Icons.insights_rounded),
+              _buildNavItem(
+                index: 2,
                 label: 'Kinerja',
+                outlineIcon: Icons.insights_outlined,
+                activeIcon: Icons.insights_rounded,
               ),
-              NavigationDestination(
-                icon: Icon(Icons.event_available_outlined),
-                selectedIcon: Icon(Icons.event_available_rounded),
+              _buildNavItem(
+                index: 3,
                 label: 'Pengajuan',
+                outlineIcon: Icons.assignment_outlined,
+                activeIcon: Icons.assignment_rounded,
               ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline_rounded),
-                selectedIcon: Icon(Icons.person_rounded),
+              _buildNavItem(
+                index: 4,
                 label: 'Profil',
+                outlineIcon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required String label,
+    required IconData outlineIcon,
+    required IconData activeIcon,
+  }) {
+    final isSelected = _currentIndex == index;
+
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onItemTapped(index),
+          splashColor: AppColors.primary.withValues(alpha: 0.08),
+          highlightColor: Colors.transparent,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Top Indicator Line (YouTube / Twitter / LinkedIn style)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                width: isSelected ? 32 : 0,
+                height: 3,
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
+                        )
+                      : null,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF0037B0).withValues(alpha: 0.45),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+
+              const Spacer(),
+
+              // Icon with subtle animated scale
+              AnimatedScale(
+                scale: isSelected ? 1.08 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                child: Icon(
+                  isSelected ? activeIcon : outlineIcon,
+                  size: 23,
+                  color: isSelected ? AppColors.primary : const Color(0xFF64748B),
+                ),
+              ),
+
+              const SizedBox(height: 3),
+
+              // Text Label
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? AppColors.primary : const Color(0xFF64748B),
+                  letterSpacing: -0.1,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              const SizedBox(height: 6),
             ],
           ),
         ),
