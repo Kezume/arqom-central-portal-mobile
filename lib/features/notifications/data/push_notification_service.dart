@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:share_plus/share_plus.dart';
 import 'notifications_service.dart';
 import '../presentation/notifications_screen.dart';
 
@@ -29,6 +30,15 @@ class PushNotificationService {
     'Persetujuan Pengajuan Portal',
     description: 'Notifikasi status persetujuan cuti, izin, lembur, dan dinas',
     importance: Importance.max, // PENTING: max memunculkan Pop-up Heads-up Banner di atas layar
+    playSound: true,
+    enableVibration: true,
+  );
+
+  static const AndroidNotificationChannel downloadChannel = AndroidNotificationChannel(
+    'portal_downloads_channel',
+    'Unduhan Dokumen Portal',
+    description: 'Notifikasi kemajuan dan penyelesaian unduhan dokumen SOP',
+    importance: Importance.max, // Memunculkan Pop-up Heads-up Banner di atas layar
     playSound: true,
     enableVibration: true,
   );
@@ -66,9 +76,10 @@ class PushNotificationService {
       );
 
       // Daftarkan channel prioritas MAX di Android Oreo 8.0+
-      await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
+      final androidPlatform = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlatform?.createNotificationChannel(channel);
+      await androidPlatform?.createNotificationChannel(downloadChannel);
 
       // Minta izin notifikasi (Android 13+ & iOS)
       final NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
@@ -202,6 +213,17 @@ class PushNotificationService {
     try {
       final data = jsonDecode(payload) as Map<String, dynamic>;
       if (kDebugMode) print('Local notification payload diketuk: $data');
+
+      // Jika notifikasi unduhan dokumen SOP diketuk, bagikan / buka berkas
+      if (data['type'] == 'sop_download' && data['filePath'] != null) {
+        final filePath = data['filePath'].toString();
+        final file = File(filePath);
+        if (file.existsSync()) {
+          Share.shareXFiles([XFile(filePath)], text: data['title'] ?? 'Dokumen Resmi');
+        }
+        return;
+      }
+
       final context = navigatorKey?.currentContext;
       if (context != null) {
         Navigator.push(
@@ -209,6 +231,134 @@ class PushNotificationService {
           MaterialPageRoute(builder: (_) => const NotificationsScreen()),
         );
       }
+    } catch (_) {}
+  }
+
+  /// Tampilkan pop-up notifikasi saat proses unduhan dimulai
+  static Future<void> showDownloadProgressNotification({
+    required int id,
+    required String title,
+    required String fileName,
+  }) async {
+    try {
+      final androidDetails = AndroidNotificationDetails(
+        downloadChannel.id,
+        downloadChannel.name,
+        channelDescription: downloadChannel.description,
+        importance: downloadChannel.importance,
+        priority: Priority.high,
+        showProgress: true,
+        indeterminate: true,
+        ongoing: true,
+        autoCancel: false,
+        icon: '@mipmap/launcher_icon',
+      );
+
+      final notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: false,
+        ),
+      );
+
+      await flutterLocalNotificationsPlugin.show(
+        id,
+        'Mengunduh Dokumen...',
+        '$title ($fileName)',
+        notificationDetails,
+      );
+    } catch (_) {}
+  }
+
+  /// Tampilkan pop-up notifikasi saat unduhan berhasil diselesaikan
+  static Future<void> showDownloadCompletedNotification({
+    required int id,
+    required String title,
+    required String fileName,
+    String? filePath,
+  }) async {
+    try {
+      final androidDetails = AndroidNotificationDetails(
+        downloadChannel.id,
+        downloadChannel.name,
+        channelDescription: downloadChannel.description,
+        importance: Importance.max,
+        priority: Priority.max,
+        showProgress: false,
+        ongoing: false,
+        autoCancel: true,
+        playSound: true,
+        enableVibration: true,
+        icon: '@mipmap/launcher_icon',
+      );
+
+      final notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          presentBadge: true,
+        ),
+      );
+
+      final payload = jsonEncode({
+        'type': 'sop_download',
+        'title': title,
+        'fileName': fileName,
+        'filePath': filePath,
+      });
+
+      await flutterLocalNotificationsPlugin.show(
+        id,
+        'Unduhan Selesai',
+        '$fileName berhasil disimpan ke perangkat.',
+        notificationDetails,
+        payload: payload,
+      );
+    } catch (_) {}
+  }
+
+  /// Tampilkan notifikasi jika proses unduhan gagal
+  static Future<void> showDownloadFailedNotification({
+    required int id,
+    required String title,
+    String? reason,
+  }) async {
+    try {
+      final androidDetails = AndroidNotificationDetails(
+        downloadChannel.id,
+        downloadChannel.name,
+        channelDescription: downloadChannel.description,
+        importance: Importance.high,
+        priority: Priority.high,
+        showProgress: false,
+        ongoing: false,
+        autoCancel: true,
+        icon: '@mipmap/launcher_icon',
+      );
+
+      final notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+        ),
+      );
+
+      await flutterLocalNotificationsPlugin.show(
+        id,
+        'Gagal Mengunduh Dokumen',
+        reason ?? 'Terjadi kesalahan saat mengunduh $title.',
+        notificationDetails,
+      );
+    } catch (_) {}
+  }
+
+  /// Batalkan notifikasi berdasarkan ID
+  static Future<void> cancelNotification(int id) async {
+    try {
+      await flutterLocalNotificationsPlugin.cancel(id);
     } catch (_) {}
   }
 }

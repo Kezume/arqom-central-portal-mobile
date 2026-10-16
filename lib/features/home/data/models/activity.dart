@@ -17,15 +17,28 @@ class Activity {
     required this.status,
   });
 
+  static String _extractStr(dynamic val, {String fallback = ''}) {
+    if (val == null) return fallback;
+    if (val is String) return val;
+    if (val is Map) {
+      return val['name']?.toString() ??
+          val['title']?.toString() ??
+          val['label']?.toString() ??
+          val['location']?.toString() ??
+          fallback;
+    }
+    return val.toString();
+  }
+
   factory Activity.fromJson(Map<String, dynamic> json) {
     return Activity(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      category: json['category'] ?? '',
-      activityDate: json['activity_date'] ?? '',
-      location: json['location'] ?? '',
-      pic: json['pic'] ?? '',
-      status: json['status'] ?? '',
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      title: _extractStr(json['title']),
+      category: _extractStr(json['category']),
+      activityDate: _extractStr(json['activity_date']),
+      location: _extractStr(json['location']),
+      pic: _extractStr(json['pic']),
+      status: _extractStr(json['status']),
     );
   }
 }

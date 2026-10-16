@@ -136,8 +136,10 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
 
     if (confirmed == true) {
+      if (mounted) ArtechLoadingWidget.showLoadingDialog(context, message: 'Membatalkan pengajuan...');
       final res = await RequestsService.cancelRequest(item.id);
       if (!mounted) return;
+      ArtechLoadingWidget.hideLoadingDialog(context);
       if (res.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(res.message), backgroundColor: Colors.green),
@@ -207,6 +209,30 @@ class _RequestsScreenState extends State<RequestsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Setujui pengajuan ${item.typeLabel} dari ${item.employee?.name ?? "karyawan"}?'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, size: 14, color: Color(0xFF0037B0)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      item.approvalFlow == 'hcga_only' || item.approvalFlow == 'auto_approved'
+                          ? 'Persetujuan ini adalah tahap final. Dampak kehadiran otomatis langsung aktif pada presensi karyawan.'
+                          : 'Persetujuan Manager akan meneruskan pengajuan ke HCGA (status: Menunggu HCGA). Dampak absensi aktif setelah persetujuan final HCGA.',
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF334155), height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: noteController,
@@ -238,8 +264,10 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
 
     if (confirmed == true) {
+      if (mounted) ArtechLoadingWidget.showLoadingDialog(context, message: 'Menyetujui pengajuan...');
       final res = await RequestsService.approveRequest(item.id, note: noteController.text.trim());
       if (!mounted) return;
+      ArtechLoadingWidget.hideLoadingDialog(context);
       if (res.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(res.message), backgroundColor: Colors.green),
@@ -309,8 +337,10 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
 
     if (confirmed == true) {
+      if (mounted) ArtechLoadingWidget.showLoadingDialog(context, message: 'Menolak pengajuan...');
       final res = await RequestsService.rejectRequest(item.id, note: noteController.text.trim());
       if (!mounted) return;
+      ArtechLoadingWidget.hideLoadingDialog(context);
       if (res.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(res.message), backgroundColor: Colors.orange.shade800),
@@ -603,6 +633,68 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 ),
               ],
 
+              // Dampak pada Modul Absensi & Presensi
+              if (item.attendanceImpact != null && item.attendanceImpact!.affectsAttendance) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: item.attendanceImpact!.isEffective
+                        ? const Color(0xFFF0FDF4)
+                        : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: item.attendanceImpact!.isEffective
+                          ? const Color(0xFFBBF7D0)
+                          : const Color(0xFFFDE68A),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            item.attendanceImpact!.isEffective
+                                ? Icons.verified_rounded
+                                : Icons.info_outline_rounded,
+                            size: 16,
+                            color: item.attendanceImpact!.isEffective
+                                ? const Color(0xFF16A34A)
+                                : const Color(0xFFD97706),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'INTEGRASI ABSENSI & PRESENSI',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              color: item.attendanceImpact!.isEffective
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFD97706),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        item.attendanceImpact!.isEffective
+                            ? 'Status pengajuan sudah final Disetujui. Presensi pada tanggal ${item.attendanceImpact!.startDate ?? item.startDate} s/d ${item.attendanceImpact!.endDate ?? item.endDate ?? item.startDate} otomatis tercatat sebagai status efektif "${item.attendanceImpact!.effectiveStatus ?? item.typeLabel}".'
+                            : 'Pengajuan mengenali modul absensi. Presensi otomatis diperbarui menjadi "${item.attendanceImpact!.effectiveStatus ?? item.typeLabel}" setelah pengajuan disetujui sepenuhnya oleh HCGA.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: item.attendanceImpact!.isEffective
+                              ? const Color(0xFF14532D)
+                              : const Color(0xFF78350F),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 16),
 
               // Alur Persetujuan
@@ -701,33 +793,43 @@ class _RequestsScreenState extends State<RequestsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildMiniHeader(context),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildMainTabSelector(),
-                    const SizedBox(height: 16),
-                    if (_selectedMainTab == 0) ...[
-                      _buildQuickCategories(context),
-                      const SizedBox(height: 18),
-                      _buildSearchBar(),
-                      const SizedBox(height: 12),
-                      _buildStatusFilters(context),
-                      const SizedBox(height: 14),
-                      _buildMyRequestsList(),
-                    ] else ...[
-                      _buildApprovalsHeaderBanner(),
-                      const SizedBox(height: 14),
-                      _buildSearchBar(),
-                      const SizedBox(height: 12),
-                      _buildApprovalTypeFilters(context),
-                      const SizedBox(height: 14),
-                      _buildApprovalsList(),
+              if (_isLoading && _myRequests.isEmpty && _pendingApprovals.isEmpty)
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.55,
+                  alignment: Alignment.center,
+                  child: ArtechLoadingWidget.page(
+                    message: 'Memuat data pengajuan...',
+                    size: 72,
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildMainTabSelector(),
+                      const SizedBox(height: 16),
+                      if (_selectedMainTab == 0) ...[
+                        _buildQuickCategories(context),
+                        const SizedBox(height: 18),
+                        _buildSearchBar(),
+                        const SizedBox(height: 12),
+                        _buildStatusFilters(context),
+                        const SizedBox(height: 14),
+                        _buildMyRequestsList(),
+                      ] else ...[
+                        _buildApprovalsHeaderBanner(),
+                        const SizedBox(height: 14),
+                        _buildSearchBar(),
+                        const SizedBox(height: 12),
+                        _buildApprovalTypeFilters(context),
+                        const SizedBox(height: 14),
+                        _buildApprovalsList(),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -795,6 +897,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Row(
                       children: [
@@ -837,6 +940,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       ],
                     ),
                     Container(
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.14),
                         shape: BoxShape.circle,
@@ -851,10 +956,11 @@ class _RequestsScreenState extends State<RequestsScreen> {
                           const iconWidget = Icon(
                             Icons.notifications_none_rounded,
                             color: Colors.white,
-                            size: 20,
+                            size: 21,
                           );
 
                           return IconButton(
+                            padding: EdgeInsets.zero,
                             icon: unreadCount > 0
                                 ? const Badge(
                                     backgroundColor: Color(0xFFEF4444),
@@ -869,7 +975,6 @@ class _RequestsScreenState extends State<RequestsScreen> {
                               );
                               NotificationsService.refreshUnreadCount();
                             },
-                            visualDensity: VisualDensity.compact,
                           );
                         },
                       ),
@@ -1950,6 +2055,55 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   ],
                 ),
               ),
+              // Attendance Impact Badge
+              if (item.attendanceImpact != null && item.attendanceImpact!.affectsAttendance) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: item.attendanceImpact!.isEffective
+                        ? const Color(0xFFF0FDF4)
+                        : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: item.attendanceImpact!.isEffective
+                          ? const Color(0xFFBBF7D0)
+                          : const Color(0xFFFDE68A),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        item.attendanceImpact!.isEffective
+                            ? Icons.event_available_rounded
+                            : Icons.schedule_rounded,
+                        size: 13,
+                        color: item.attendanceImpact!.isEffective
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFD97706),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          item.attendanceImpact!.isEffective
+                              ? 'Absensi Aktif: ${item.attendanceImpact!.effectiveStatus ?? item.typeLabel}'
+                              : 'Absensi: Otomatis aktif setelah Disetujui (${item.attendanceImpact!.effectiveStatus ?? item.typeLabel})',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: item.attendanceImpact!.isEffective
+                                ? const Color(0xFF15803D)
+                                : const Color(0xFFB45309),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 12),
 
               // Approval Flow Steps

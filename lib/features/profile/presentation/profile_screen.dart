@@ -5,6 +5,8 @@ import '../../../core/widgets/artech_pull_to_refresh.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../auth/data/auth_service.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../notifications/data/notifications_service.dart';
+import '../../sop/presentation/sop_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+    NotificationsService.refreshUnreadCount();
   }
 
   Future<void> _loadUserData() async {
@@ -36,6 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _refreshData() async {
     await Future.wait([
       _loadUserData(),
+      NotificationsService.refreshUnreadCount(),
       Future.delayed(const Duration(milliseconds: 600)),
     ]);
   }
@@ -129,6 +133,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 10),
                         _buildMenuCard(
                           children: [
+                            _buildMenuItem(
+                              context,
+                              Icons.menu_book_outlined,
+                              'SOP & Dokumen Resmi',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const SopListScreen()),
+                                );
+                              },
+                            ),
+                            _buildDivider(),
                             _buildMenuItem(context, Icons.help_outline, 'Pusat Bantuan', onTap: () {}),
                             _buildDivider(),
                             _buildMenuItem(context, Icons.description_outlined, 'Syarat & Ketentuan', onTap: () {}),
@@ -167,12 +182,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  static String _extractStr(dynamic val, {String fallback = ''}) {
+    if (val == null) return fallback;
+    if (val is String) {
+      final s = val.trim();
+      return s.isEmpty ? fallback : s;
+    }
+    if (val is Map) {
+      final possible = val['name'] ?? val['title'] ?? val['label'];
+      if (possible != null) {
+        final s = possible.toString().trim();
+        if (s.isNotEmpty) return s;
+      }
+      return fallback;
+    }
+    final s = val.toString().trim();
+    return s.isEmpty ? fallback : s;
+  }
+
   Widget _buildProfileHeader(BuildContext context) {
-    final name = _userData?['name'] ?? 'Pengguna';
-    final role = _userData?['position'] ?? _userData?['role'] ?? 'Staff';
-    final identifier = _userData?['email'] ?? _userData?['nik'] ?? '-';
-    final photoUrl = _userData?['profile_photo_url'] ?? 
-        'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
+    final rawName = _userData?['employee']?['name'] ?? _userData?['name'];
+    final name = _extractStr(rawName, fallback: 'Pengguna');
+    final rawRole = _userData?['employee']?['position'] ??
+        _userData?['position'] ??
+        _userData?['role'];
+    final role = _extractStr(rawRole, fallback: 'Staff');
+    final identifier = _extractStr(_userData?['email'] ?? _userData?['nik'], fallback: '-');
+    final rawPhoto = _userData?['profile_photo_url'] ??
+        _userData?['employee']?['profile_photo_url'];
+    final photoUrl = (rawPhoto is String && rawPhoto.isNotEmpty)
+        ? rawPhoto
+        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
 
     return Container(
       width: double.infinity,
@@ -226,13 +266,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               top: MediaQuery.of(context).padding.top + 16,
               left: 20,
               right: 20,
-              bottom: 26,
+              bottom: 24,
             ),
             child: Column(
               children: [
                 // Title bar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
                       'Profil',
@@ -244,6 +285,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     Container(
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.14),
                         shape: BoxShape.circle,
@@ -252,10 +295,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 1,
                         ),
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
-                        onPressed: () {},
-                        visualDensity: VisualDensity.compact,
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: NotificationsService.unreadCountNotifier,
+                        builder: (context, unreadCount, _) {
+                          const iconWidget = Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.white,
+                            size: 21,
+                          );
+
+                          return IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: unreadCount > 0
+                                ? const Badge(
+                                    backgroundColor: Color(0xFFEF4444),
+                                    smallSize: 8,
+                                    child: iconWidget,
+                                  )
+                                : iconWidget,
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                              );
+                              NotificationsService.refreshUnreadCount();
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],

@@ -114,70 +114,75 @@ class _CutiTahunanScreenState extends State<CutiTahunanScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildDatePicker(
-                      'Tanggal Mulai',
-                      'Pilih tanggal',
-                      _startDateController,
-                      onPicked: (dt) {
-                        _startDate = dt;
-                        if (_endDate != null && _endDate!.isBefore(dt)) {
-                          _endDate = dt;
-                          _endDateController.text = _formatDateYmd(dt);
-                        }
-                      },
+      body: ArtechLoadingWidget.overlay(
+        isLoading: _isLoading,
+        message: widget.existingItem != null ? 'Menyimpan perubahan cuti...' : 'Mengirim pengajuan cuti...',
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDatePicker(
+                        'Tanggal Mulai',
+                        'Pilih tanggal',
+                        _startDateController,
+                        onPicked: (dt) {
+                          _startDate = dt;
+                          if (_endDate != null && _endDate!.isBefore(dt)) {
+                            _endDate = dt;
+                            _endDateController.text = _formatDateYmd(dt);
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildDatePicker(
-                      'Tanggal Selesai',
-                      'Pilih tanggal',
-                      _endDateController,
-                      firstDate: _startDate,
-                      onPicked: (dt) => _endDate = dt,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDatePicker(
+                        'Tanggal Selesai',
+                        'Pilih tanggal',
+                        _endDateController,
+                        firstDate: _startDate,
+                        onPicked: (dt) => _endDate = dt,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildInputField(
-                'Alasan Cuti',
-                'Berikan penjelasan singkat mengenai cuti',
-                _reasonController,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 20),
-              _buildInputField(
-                'Pendelegasian Tugas (Opsional)',
-                'Nama rekan kerja yang mem-backup pekerjaan',
-                _delegationController,
-                required: false,
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitRequest,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
+                  ],
                 ),
-                child: _isLoading
-                    ? ArtechLoadingWidget.button(size: 20)
-                    : Text(widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
+                const SizedBox(height: 20),
+                _buildInputField(
+                  'Alasan Cuti',
+                  'Berikan penjelasan singkat mengenai cuti',
+                  _reasonController,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 20),
+                _buildInputField(
+                  'Pendelegasian Tugas (Opsional)',
+                  'Nama rekan kerja yang mem-backup pekerjaan',
+                  _delegationController,
+                  required: false,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _submitRequest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

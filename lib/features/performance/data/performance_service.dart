@@ -186,7 +186,7 @@ class PerformanceService {
       }
 
       final uri = Uri.parse('${AuthService.baseUrl}/performance/monthly-targets/$id');
-      final response = await http
+      var response = await http
           .patch(
             uri,
             headers: _buildHeaders(token),
@@ -194,11 +194,28 @@ class PerformanceService {
           )
           .timeout(const Duration(seconds: 15));
 
+      // Fallback: jika PATCH ditolak server (405 Method Not Allowed), gunakan PUT
+      if (response.statusCode == 405) {
+        response = await http
+            .put(
+              uri,
+              headers: _buildHeaders(token),
+              body: jsonEncode(body),
+            )
+            .timeout(const Duration(seconds: 15));
+      }
+
       final decoded = jsonDecode(response.body);
-      if (response.statusCode == 200) {
+      final isStatusSuccess = decoded is Map &&
+          (decoded['status'] == 'success' ||
+              decoded['status'] == true ||
+              decoded['success'] == true ||
+              (!decoded.containsKey('status') && !decoded.containsKey('success')));
+
+      if ((response.statusCode == 200 || response.statusCode == 201) && isStatusSuccess) {
         return PerformanceApiResponse(
           success: true,
-          statusCode: 200,
+          statusCode: response.statusCode,
           data: decoded['data'] is Map<String, dynamic> ? decoded['data'] : null,
           message: decoded['message']?.toString() ?? 'Target berhasil diperbarui.',
         );
@@ -460,7 +477,7 @@ class PerformanceService {
             headers: _buildHeaders(token),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 20));
+          .timeout(const Duration(seconds: 15));
 
       // If method not allowed (405), try POST as mentioned in docs "(bisa juga menggunakan POST)"
       if (response.statusCode == 405) {
@@ -470,11 +487,17 @@ class PerformanceService {
               headers: _buildHeaders(token),
               body: jsonEncode(body),
             )
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 15));
       }
 
       final decoded = jsonDecode(response.body);
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      final isStatusSuccess = decoded is Map &&
+          (decoded['status'] == 'success' ||
+              decoded['status'] == true ||
+              decoded['success'] == true ||
+              (!decoded.containsKey('status') && !decoded.containsKey('success')));
+
+      if ((response.statusCode == 200 || response.statusCode == 201) && isStatusSuccess) {
         return PerformanceApiResponse(
           success: true,
           statusCode: response.statusCode,

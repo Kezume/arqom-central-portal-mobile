@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/performance_models.dart';
 import '../../data/performance_service.dart';
+import '../../../../core/widgets/artech_loading_widget.dart';
 
 class UpdatePlanItemModal extends StatefulWidget {
   final WeeklyPlanItem item;
@@ -134,10 +135,13 @@ class _UpdatePlanItemModalState extends State<UpdatePlanItemModal> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.90,
-      ),
+    return ArtechLoadingWidget.overlay(
+      isLoading: _isLoading,
+      message: 'Menyimpan rincian rencana...',
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.90,
+        ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -520,27 +524,21 @@ class _UpdatePlanItemModalState extends State<UpdatePlanItemModal> {
                           ],
                         ),
                         child: Center(
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.save_rounded, color: Colors.white, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Simpan Rincian Rencana',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.save_rounded, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Simpan Rincian Rencana',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
                                 ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -551,6 +549,7 @@ class _UpdatePlanItemModalState extends State<UpdatePlanItemModal> {
           ),
         ],
       ),
+    ),
     );
   }
 

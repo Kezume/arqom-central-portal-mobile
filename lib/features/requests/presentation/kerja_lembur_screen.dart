@@ -547,8 +547,11 @@ class _KerjaLemburScreenState extends State<KerjaLemburScreen> {
   Widget build(BuildContext context) {
     final durationText = _calculateDuration();
 
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLowest,
+    return ArtechLoadingWidget.overlay(
+      isLoading: _isLoading,
+      message: widget.existingItem != null ? 'Menyimpan perubahan lembur...' : 'Mengirim pengajuan lembur...',
+      child: Scaffold(
+        backgroundColor: AppColors.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(
           widget.existingItem != null ? 'Edit Pengajuan Lembur' : 'Pengajuan Kerja Lembur',
@@ -896,14 +899,13 @@ class _KerjaLemburScreenState extends State<KerjaLemburScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 0,
           ),
-          child: _isLoading
-              ? ArtechLoadingWidget.button(size: 20)
-              : Text(
-                  widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Lembur',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
+          child: Text(
+            widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Lembur',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
+    ),
     );
   }
 

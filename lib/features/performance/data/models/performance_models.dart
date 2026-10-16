@@ -67,7 +67,9 @@ class MonthlyTargetItem {
       level: json['level']?.toString() ?? 'main',
       title: json['title']?.toString() ?? '',
       expectedResults: json['expected_results']?.toString(),
-      status: json['status']?.toString() ?? 'not_started',
+      status: json['status']?.toString() ??
+          json['execution_status']?.toString() ??
+          'not_started',
       priority: json['priority']?.toString() ?? 'normal',
       picName: json['pic_name']?.toString(),
       startDate: json['start_date']?.toString(),

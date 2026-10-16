@@ -479,8 +479,11 @@ class _DinasLuarScreenState extends State<DinasLuarScreen> {
         scrolledUnderElevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: ArtechLoadingWidget.overlay(
+        isLoading: _isLoading,
+        message: widget.existingItem != null ? 'Menyimpan perubahan dinas luar...' : 'Mengirim pengajuan dinas luar...',
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
@@ -805,16 +808,18 @@ class _DinasLuarScreenState extends State<DinasLuarScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: _isLoading
-                    ? ArtechLoadingWidget.button(size: 20)
-                    : Text(widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Dinas', style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Dinas',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildChoiceChip({
     required String label,

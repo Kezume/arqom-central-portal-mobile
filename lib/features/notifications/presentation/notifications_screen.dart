@@ -319,17 +319,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(context),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildFilterTabs(),
-                    const SizedBox(height: 14),
-                    _buildContentList(),
-                  ],
+              if (_isLoading && _notifications.isEmpty)
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.55,
+                  alignment: Alignment.center,
+                  child: ArtechLoadingWidget.page(
+                    message: 'Memuat notifikasi...',
+                    size: 72,
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildFilterTabs(),
+                      const SizedBox(height: 14),
+                      _buildContentList(),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -384,9 +394,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           Padding(
             padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 12,
-              left: 16,
-              right: 16,
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 20,
+              right: 20,
               bottom: 24,
             ),
             child: Column(
@@ -394,15 +404,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                          onPressed: () => Navigator.pop(context),
-                          visualDensity: VisualDensity.compact,
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              width: 1,
+                            ),
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                            onPressed: () => Navigator.pop(context),
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 12),
                         const Text(
                           'Notifikasi',
                           style: TextStyle(
@@ -433,14 +456,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ],
                     ),
                     PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
                       icon: Container(
-                        padding: const EdgeInsets.all(6),
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.14),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
                         ),
-                        child: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 18),
+                        child: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 20),
                       ),
                       onSelected: (val) {
                         if (val == 'mark_all') {

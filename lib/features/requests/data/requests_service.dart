@@ -151,8 +151,28 @@ class RequestsService {
     }
   }
 
+  /// 5.5 Helper URL endpoint khusus atau terpadu
+  static String resolveRequestEndpoint(String requestType, {bool dedicated = false}) {
+    if (!dedicated) return '${AuthService.baseUrl}/requests';
+    switch (requestType.toLowerCase().trim()) {
+      case 'izin':
+        return '${AuthService.baseUrl}/requests/izin';
+      case 'sakit':
+        return '${AuthService.baseUrl}/requests/sakit';
+      case 'cuti':
+        return '${AuthService.baseUrl}/requests/cuti';
+      case 'lembur':
+        return '${AuthService.baseUrl}/requests/lembur';
+      case 'perjalanan_dinas':
+      case 'dinas':
+        return '${AuthService.baseUrl}/requests/perjalanan-dinas';
+      default:
+        return '${AuthService.baseUrl}/requests';
+    }
+  }
+
   /// 5.5 Buat Pengajuan Baru
-  /// POST /api/requests (multipart/form-data)
+  /// POST /api/requests atau endpoint khusus (POST /api/requests/izin, /sakit, dsb)
   static Future<RequestApiResponse<Map<String, dynamic>>> createRequest({
     required String requestType,
     required String description,
@@ -165,9 +185,11 @@ class RequestsService {
     String? tipePeserta,
     List<int>? peserta,
     File? attachment,
+    bool useDedicatedEndpoint = false,
   }) async {
     try {
-      final uri = Uri.parse('${AuthService.baseUrl}/requests');
+      final targetUrl = resolveRequestEndpoint(requestType, dedicated: useDedicatedEndpoint);
+      final uri = Uri.parse(targetUrl);
       final token = await AuthService.getToken();
 
       if (attachment != null && await attachment.exists()) {
@@ -202,6 +224,7 @@ class RequestsService {
         if (peserta != null && peserta.isNotEmpty) {
           for (int i = 0; i < peserta.length; i++) {
             request.fields['peserta[$i]'] = peserta[i].toString();
+            request.fields['peserta[]'] = peserta[i].toString();
           }
         }
 
@@ -343,6 +366,7 @@ class RequestsService {
         if (peserta != null && peserta.isNotEmpty) {
           for (int i = 0; i < peserta.length; i++) {
             request.fields['peserta[$i]'] = peserta[i].toString();
+            request.fields['peserta[]'] = peserta[i].toString();
           }
         }
 

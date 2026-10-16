@@ -66,8 +66,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: ArtechLoadingWidget.overlay(
+        isLoading: _isLoading,
+        message: 'Memverifikasi akun...',
+        child: SafeArea(
+          child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -232,12 +235,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: _isLoading
-                    ? ArtechLoadingWidget.button(size: 20)
-                    : const Text(
-                        'Masuk',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                child: const Text(
+                  'Masuk',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -277,6 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

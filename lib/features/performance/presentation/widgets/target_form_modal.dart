@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/performance_models.dart';
 import '../../data/performance_service.dart';
+import '../../../../core/widgets/artech_loading_widget.dart';
 
 class TargetFormModal extends StatefulWidget {
   final int currentYear;
@@ -151,12 +152,16 @@ class _TargetFormModalState extends State<TargetFormModal> {
     try {
       if (_isEdit) {
         final body = <String, dynamic>{
+          'id': widget.initialTarget!.id,
+          'level': _level,
           'title': _titleController.text.trim(),
           'expected_results': _expectedResultsController.text.trim(),
           'status': _status,
+          'execution_status': _status,
           'priority': _priority,
           'notes': _notesController.text.trim(),
         };
+        if (_parentId != null) body['parent_id'] = _parentId;
         if (_startDateController.text.isNotEmpty) body['start_date'] = _startDateController.text;
         if (_deadlineController.text.isNotEmpty) body['deadline'] = _deadlineController.text;
 
@@ -222,10 +227,13 @@ class _TargetFormModalState extends State<TargetFormModal> {
     final hasValidParent = selectableParents.any((p) => p.id == _parentId);
     final currentParentId = hasValidParent ? _parentId : null;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-      ),
+    return ArtechLoadingWidget.overlay(
+      isLoading: _isLoading,
+      message: _isEdit ? 'Menyimpan perubahan target...' : 'Menambahkan target...',
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.88,
+        ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -623,20 +631,14 @@ class _TargetFormModalState extends State<TargetFormModal> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : Text(
-                                  _isEdit ? 'Simpan Perubahan' : 'Tambah Target',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
+                          child: Text(
+                            _isEdit ? 'Simpan Perubahan' : 'Tambah Target',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -647,6 +649,7 @@ class _TargetFormModalState extends State<TargetFormModal> {
           ),
         ],
       ),
+    ),
     );
   }
 

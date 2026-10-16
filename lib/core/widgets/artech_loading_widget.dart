@@ -300,7 +300,7 @@ class ArtechLoadingWidget extends StatefulWidget {
   static Future<void> showLoadingDialog(
     BuildContext context, {
     String message = 'Memproses...',
-    bool barrierDismissible = false,
+    bool barrierDismissible = true,
   }) {
     return showDialog<void>(
       context: context,
@@ -354,9 +354,74 @@ class ArtechLoadingWidget extends StatefulWidget {
 
   /// Closes the active loading dialog if open.
   static void hideLoadingDialog(BuildContext context) {
-    if (Navigator.of(context, rootNavigator: true).canPop()) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
+    try {
+      final nav = Navigator.of(context, rootNavigator: true);
+      if (nav.canPop()) {
+        nav.pop();
+      }
+    } catch (_) {}
+  }
+
+  /// Center overlay widget that wraps any screen, modal or view.
+  /// When [isLoading] is true, dims the background and centers the ArtechLoadingWidget
+  /// right in the middle of the screen, preventing buttons from needing cramped spinners.
+  static Widget overlay({
+    required bool isLoading,
+    required Widget child,
+    String? message = 'Memproses...',
+  }) {
+    return Stack(
+      children: [
+        child,
+        if (isLoading)
+          Positioned.fill(
+            child: AbsorbPointer(
+              absorbing: true,
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.38),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 28),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.16),
+                        blurRadius: 28,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ArtechLoadingWidget(
+                        size: 72.0,
+                        showHalo: true,
+                      ),
+                      if (message != null && message.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E293B),
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   @override

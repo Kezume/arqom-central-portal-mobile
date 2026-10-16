@@ -147,6 +147,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
@@ -180,7 +181,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                           const iconWidget = Icon(
                             Icons.notifications_none_rounded,
                             color: Colors.white,
-                            size: 20,
+                            size: 21,
                           );
 
                           return IconButton(
@@ -247,16 +248,40 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
+  static String _extractStr(dynamic val, {String fallback = ''}) {
+    if (val == null) return fallback;
+    if (val is String) {
+      final s = val.trim();
+      return s.isEmpty ? fallback : s;
+    }
+    if (val is Map) {
+      final possible = val['name'] ?? val['title'] ?? val['label'];
+      if (possible != null) {
+        final s = possible.toString().trim();
+        if (s.isNotEmpty) return s;
+      }
+      return fallback;
+    }
+    final s = val.toString().trim();
+    return s.isEmpty ? fallback : s;
+  }
+
   Widget _buildProfileSubHeader(BuildContext context) {
-    final name = _userData?['employee']?['name'] ?? _userData?['name'] ?? 'Pengguna';
-    final role = _userData?['employee']?['position'] ?? _userData?['position'] ?? _userData?['role'] ?? 'Staff';
-    final division = _userData?['employee']?['department']?['name'] ??
+    final rawName = _userData?['employee']?['name'] ?? _userData?['name'];
+    final name = _extractStr(rawName, fallback: 'Pengguna');
+    final rawRole = _userData?['employee']?['position'] ??
+        _userData?['position'] ??
+        _userData?['role'];
+    final role = _extractStr(rawRole, fallback: 'Staff');
+    final rawDivision = _userData?['employee']?['department']?['name'] ??
         _userData?['department']?['name'] ??
-        _userData?['division'] ??
-        'Operasional';
-    final photoUrl = _userData?['profile_photo_url'] ??
-        _userData?['employee']?['profile_photo_url'] ??
-        'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
+        _userData?['division'];
+    final division = _extractStr(rawDivision, fallback: 'Operasional');
+    final rawPhoto = _userData?['profile_photo_url'] ??
+        _userData?['employee']?['profile_photo_url'];
+    final photoUrl = (rawPhoto is String && rawPhoto.isNotEmpty)
+        ? rawPhoto
+        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
 
     return Container(
       padding: const EdgeInsets.all(12),

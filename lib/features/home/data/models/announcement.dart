@@ -15,14 +15,27 @@ class Announcement {
     required this.endsAt,
   });
 
+  static String _extractStr(dynamic val, {String fallback = ''}) {
+    if (val == null) return fallback;
+    if (val is String) return val;
+    if (val is Map) {
+      return val['name']?.toString() ??
+          val['title']?.toString() ??
+          val['description']?.toString() ??
+          val['label']?.toString() ??
+          fallback;
+    }
+    return val.toString();
+  }
+
   factory Announcement.fromJson(Map<String, dynamic> json) {
     return Announcement(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      priority: json['priority'] ?? 'normal',
-      startsAt: json['starts_at'] ?? '',
-      endsAt: json['ends_at'] ?? '',
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      title: _extractStr(json['title']),
+      description: _extractStr(json['description']),
+      priority: _extractStr(json['priority'], fallback: 'normal'),
+      startsAt: _extractStr(json['starts_at']),
+      endsAt: _extractStr(json['ends_at']),
     );
   }
 }

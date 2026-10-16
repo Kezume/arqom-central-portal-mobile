@@ -227,7 +227,11 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
       return;
     }
 
+    final nav = Navigator.of(context, rootNavigator: true);
     setState(() => _isSubmitting = true);
+    ArtechLoadingWidget.showLoadingDialog(context, message: 'Menyimpan & mengevaluasi...');
+
+    late final PerformanceApiResponse<Map<String, dynamic>> res;
 
     try {
       final itemsPayload = <String, dynamic>{};
@@ -258,60 +262,74 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
       }
 
       final dateStr = _formatDate(_currentWeekDate);
-      final res = await PerformanceService.submitWeeklyReviewBatch(
+      res = await PerformanceService.submitWeeklyReviewBatch(
         weekDate: dateStr,
         items: itemsPayload,
       );
+    } catch (e) {
+      res = PerformanceApiResponse(
+        success: false,
+        statusCode: 0,
+        message: 'Koneksi gagal atau bermasalah: $e',
+      );
+    } finally {
+      // 1. Selalu pastikan loading dialog ditutup menggunakan navigator yang sudah ditangkap
+      if (nav.canPop()) {
+        nav.pop();
+      }
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      if (res.success) {
-        for (final item in allItems) {
-          final id = item.id;
-          final currentStatus = _itemStatus[id] ?? item.executionStatus;
-          final isCompleted = currentStatus == 'completed';
-          final isNotStarted = currentStatus == 'not_started';
-          final progress = isCompleted ? 100 : (isNotStarted ? 0 : (_itemProgress[id]?.round() ?? 0));
-          _initialStatus[id] = currentStatus;
-          _initialProgress[id] = progress;
-          _initialObstacle[id] = (_obstacleControllers[id]?.text ?? '').trim();
-          _initialImprovement[id] = (_improvementControllers[id]?.text ?? '').trim();
-        }
-        widget.onDataChanged();
-        _fetchData(silent: true);
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 24),
-                const SizedBox(width: 8),
-                const Text('Review Tersimpan!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            content: Text(
-              res.message,
-              style: const TextStyle(fontSize: 13),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Tutup', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        );
-      } else {
+    if (res.success) {
+      for (final item in allItems) {
+        final id = item.id;
+        final currentStatus = _itemStatus[id] ?? item.executionStatus;
+        final isCompleted = currentStatus == 'completed';
+        final isNotStarted = currentStatus == 'not_started';
+        final progress = isCompleted ? 100 : (isNotStarted ? 0 : (_itemProgress[id]?.round() ?? 0));
+        _initialStatus[id] = currentStatus;
+        _initialProgress[id] = progress;
+        _initialObstacle[id] = (_obstacleControllers[id]?.text ?? '').trim();
+        _initialImprovement[id] = (_improvementControllers[id]?.text ?? '').trim();
+      }
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(res.message),
-            backgroundColor: AppColors.error,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    res.message,
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF16A34A),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+
+      _fetchData(silent: true);
+      widget.onDataChanged();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message, style: GoogleFonts.plusJakartaSans()),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
@@ -544,17 +562,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                     padding: const EdgeInsets.only(bottom: 20),
                     child: ElevatedButton.icon(
                       onPressed: _isSubmitting ? null : _submitBatchReview,
-                      icon: _isSubmitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Icon(Icons.send_rounded, size: 18),
+                      icon: const Icon(Icons.send_rounded, size: 18),
                       label: Text(
-                        _isSubmitting
-                            ? 'Menyimpan & Menghitung Ulang...'
-                            : 'Simpan Sekaligus (${allItems.length} Item Evaluasi)',
+                        'Simpan Sekaligus (${allItems.length} Item Evaluasi)',
                         style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                       style: ElevatedButton.styleFrom(

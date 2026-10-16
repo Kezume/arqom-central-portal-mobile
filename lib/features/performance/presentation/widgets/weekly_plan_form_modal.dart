@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/performance_service.dart';
+import '../../../../core/widgets/artech_loading_widget.dart';
 
 class WeeklyPlanFormModal extends StatefulWidget {
   final String weekDate;
@@ -121,10 +122,13 @@ class _WeeklyPlanFormModalState extends State<WeeklyPlanFormModal> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.90,
-      ),
+    return ArtechLoadingWidget.overlay(
+      isLoading: _isLoading,
+      message: 'Menyimpan rencana mingguan...',
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.90,
+        ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -423,27 +427,21 @@ class _WeeklyPlanFormModalState extends State<WeeklyPlanFormModal> {
                           ],
                         ),
                         child: Center(
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Simpan Rencana Mingguan',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Simpan Rencana Mingguan',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
                                 ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -454,6 +452,7 @@ class _WeeklyPlanFormModalState extends State<WeeklyPlanFormModal> {
           ),
         ],
       ),
+    ),
     );
   }
 

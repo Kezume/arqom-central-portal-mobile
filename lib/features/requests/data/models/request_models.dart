@@ -96,6 +96,46 @@ class RequestDetails {
   }
 }
 
+class AttendanceImpact {
+  final bool affectsAttendance;
+  final bool isEffective;
+  final String? effectiveAfterStatus;
+  final String? effectiveStatus;
+  final String? startDate;
+  final String? endDate;
+
+  AttendanceImpact({
+    required this.affectsAttendance,
+    required this.isEffective,
+    this.effectiveAfterStatus,
+    this.effectiveStatus,
+    this.startDate,
+    this.endDate,
+  });
+
+  factory AttendanceImpact.fromJson(Map<String, dynamic> json) {
+    return AttendanceImpact(
+      affectsAttendance: json['affects_attendance'] == true,
+      isEffective: json['is_effective'] == true,
+      effectiveAfterStatus: json['effective_after_status']?.toString(),
+      effectiveStatus: json['effective_status']?.toString(),
+      startDate: json['start_date']?.toString(),
+      endDate: json['end_date']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'affects_attendance': affectsAttendance,
+      'is_effective': isEffective,
+      'effective_after_status': effectiveAfterStatus,
+      'effective_status': effectiveStatus,
+      'start_date': startDate,
+      'end_date': endDate,
+    };
+  }
+}
+
 class RequestItem {
   final int id;
   final String requestNumber;
@@ -114,6 +154,7 @@ class RequestItem {
   final String status; // Menunggu Manager, Menunggu HCGA, Disetujui, Ditolak, Dibatalkan
   final String? displayStatus;
   final String? statusClass;
+  final AttendanceImpact? attendanceImpact;
   final bool isOwner;
   final bool isParticipant;
   final bool canCancel;
@@ -141,6 +182,7 @@ class RequestItem {
     required this.status,
     this.displayStatus,
     this.statusClass,
+    this.attendanceImpact,
     this.isOwner = true,
     this.isParticipant = false,
     required this.canCancel,
@@ -162,6 +204,11 @@ class RequestItem {
     final detailsMap = json['details'] is Map<String, dynamic> ? json['details'] as Map<String, dynamic> : null;
     final parsedDetailsVal = detailsMap != null ? RequestDetails.fromJson(detailsMap) : null;
 
+    final impactMap = json['attendance_impact'] is Map<String, dynamic>
+        ? json['attendance_impact'] as Map<String, dynamic>
+        : null;
+    final attendanceImpactVal = impactMap != null ? AttendanceImpact.fromJson(impactMap) : null;
+
     return RequestItem(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       requestNumber: json['request_number']?.toString() ?? '',
@@ -180,6 +227,7 @@ class RequestItem {
       status: statusStr,
       displayStatus: json['display_status']?.toString(),
       statusClass: json['status_class']?.toString(),
+      attendanceImpact: attendanceImpactVal,
       isOwner: isOwnerVal,
       isParticipant: isParticipantVal,
       canCancel: canCancelVal,

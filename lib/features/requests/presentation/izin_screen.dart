@@ -22,7 +22,6 @@ class _IzinScreenState extends State<IzinScreen> {
   final _endDateController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  String _selectedCategory = 'Izin Keperluan Pribadi';
   File? _attachmentFile;
   String? _selectedFileName;
   bool _isLoading = false;
@@ -30,11 +29,11 @@ class _IzinScreenState extends State<IzinScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
 
-  final List<String> _izinTypes = [
-    'Izin Keperluan Pribadi',
-    'Izin Keperluan Keluarga',
-    'Izin Kedukaan / Khusus',
-    'Izin Lainnya',
+  final List<String> _quickReasonSuggestions = [
+    'Keperluan Keluarga Mendesak',
+    'Administrasi Kependudukan / SIM',
+    'Acara Pernikahan / Wisuda Keluarga',
+    'Urusan Pribadi Penting',
   ];
 
   @override
@@ -48,15 +47,7 @@ class _IzinScreenState extends State<IzinScreen> {
         _endDateController.text = item.endDate!;
         _endDate = DateTime.tryParse(item.endDate!);
       }
-      String desc = item.description;
-      for (final type in _izinTypes) {
-        if (desc.startsWith('[$type]')) {
-          _selectedCategory = type;
-          desc = desc.substring('[$type]'.length).trim();
-          break;
-        }
-      }
-      _descriptionController.text = desc;
+      _descriptionController.text = item.description;
     }
   }
 
@@ -83,7 +74,9 @@ class _IzinScreenState extends State<IzinScreen> {
 
     setState(() => _isLoading = true);
 
-    final desc = '[$_selectedCategory] ${_descriptionController.text.trim()}';
+    final desc = _descriptionController.text.trim();
+    final startDateStr = _formatDateYmd(_startDate!);
+    final endDateStr = _endDate != null ? _formatDateYmd(_endDate!) : startDateStr;
 
     final isEdit = widget.existingItem != null;
     final res = isEdit
@@ -91,16 +84,17 @@ class _IzinScreenState extends State<IzinScreen> {
             id: widget.existingItem!.id,
             requestType: 'izin',
             description: desc,
-            startDate: _formatDateYmd(_startDate!),
-            endDate: _endDate != null ? _formatDateYmd(_endDate!) : null,
+            startDate: startDateStr,
+            endDate: endDateStr,
             attachment: _attachmentFile,
           )
         : await RequestsService.createRequest(
             requestType: 'izin',
             description: desc,
-            startDate: _formatDateYmd(_startDate!),
-            endDate: _endDate != null ? _formatDateYmd(_endDate!) : null,
+            startDate: startDateStr,
+            endDate: endDateStr,
             attachment: _attachmentFile,
+            useDedicatedEndpoint: true,
           );
 
     if (!mounted) return;
@@ -125,25 +119,59 @@ class _IzinScreenState extends State<IzinScreen> {
       backgroundColor: AppColors.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(
-          widget.existingItem != null ? 'Edit Pengajuan Izin' : 'Pengajuan Izin',
+          widget.existingItem != null ? 'Edit Pengajuan Tidak Masuk (Izin)' : 'Pengajuan Tidak Masuk (Izin)',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.surfaceContainerLowest,
         scrolledUnderElevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      body: ArtechLoadingWidget.overlay(
+        isLoading: _isLoading,
+        message: widget.existingItem != null ? 'Menyimpan perubahan izin...' : 'Mengirim pengajuan izin...',
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildDropdown('Kategori Izin', _selectedCategory, _izinTypes, (val) {
-                if (val != null) {
-                  setState(() => _selectedCategory = val);
-                }
-              }),
+              // Info banner keselarasan absensi & pengajuan
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade800, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Informasi Pengajuan Izin',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Gunakan formulir ini jika berhalangan hadir karena keperluan pribadi, keluarga, atau administrasi kependudukan. Presensi harian otomatis berstatus "Izin" setelah pengajuan disetujui sepenuhnya oleh HCGA.',
+                            style: TextStyle(fontSize: 11.5, color: Colors.orange.shade800, height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
 
               Row(
@@ -177,11 +205,69 @@ class _IzinScreenState extends State<IzinScreen> {
               ),
               const SizedBox(height: 20),
 
-              _buildInputField(
-                'Alasan / Keperluan Izin',
-                'Jelaskan alasan izin secara jelas dan lengkap',
-                _descriptionController,
-                maxLines: 3,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Alasan / Keperluan Izin',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        ' *',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: _quickReasonSuggestions.map((suggestion) {
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (_descriptionController.text.trim().isEmpty) {
+                              _descriptionController.text = suggestion;
+                            } else {
+                              _descriptionController.text = '${_descriptionController.text.trim()} - $suggestion';
+                            }
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Text(
+                            '+ $suggestion',
+                            style: TextStyle(fontSize: 10.5, color: Colors.orange.shade900, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _descriptionController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Jelaskan alasan izin secara jelas dan lengkap (contoh: keperluan administrasi perpanjangan SIM di luar kota)',
+                      hintStyle: TextStyle(color: AppColors.onSurfaceVariant.withValues(alpha: 0.5), fontSize: 12.5),
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Alasan izin wajib diisi' : null,
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
 
@@ -195,7 +281,7 @@ class _IzinScreenState extends State<IzinScreen> {
                 onTap: () async {
                   FilePickerResult? result = await FilePicker.pickFiles(
                     type: FileType.custom,
-                    allowedExtensions: ['jpg', 'pdf', 'png'],
+                    allowedExtensions: ['jpg', 'pdf', 'png', 'webp', 'jpeg'],
                   );
 
                   if (result != null && result.files.single.path != null) {
@@ -252,78 +338,19 @@ class _IzinScreenState extends State<IzinScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: _isLoading
-                    ? ArtechLoadingWidget.button(size: 20)
-                    : Text(widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Izin', style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Izin',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildDropdown(String label, String? value, List<String> items, Function(String?) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value,
-          isExpanded: true,
-          icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.surface,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
-          ),
-          items: items.map((item) => DropdownMenuItem(value: item, child: Text(item, style: Theme.of(context).textTheme.bodyMedium))).toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInputField(
-    String label,
-    String hint,
-    TextEditingController controller, {
-    int maxLines = 1,
-    bool required = true,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-            if (required)
-              Text(' *', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.error, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: AppColors.onSurfaceVariant.withValues(alpha: 0.5)),
-            filled: true,
-            fillColor: AppColors.surface,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
-          ),
-          validator: required ? (value) => value == null || value.trim().isEmpty ? 'Wajib diisi' : null : null,
-        ),
-      ],
-    );
-  }
 
   Widget _buildDatePicker(
     String label,

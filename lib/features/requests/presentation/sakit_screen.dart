@@ -29,6 +29,13 @@ class _SakitScreenState extends State<SakitScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
 
+  final List<String> _quickSymptomSuggestions = [
+    'Demam & Flu',
+    'Sakit Kepala / Migrain',
+    'Gangguan Pencernaan / Maag',
+    'Istirahat Dokter (Bed Rest)',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -67,22 +74,27 @@ class _SakitScreenState extends State<SakitScreen> {
 
     setState(() => _isLoading = true);
 
+    final desc = _descriptionController.text.trim();
+    final startDateStr = _formatDateYmd(_startDate!);
+    final endDateStr = _endDate != null ? _formatDateYmd(_endDate!) : startDateStr;
+
     final isEdit = widget.existingItem != null;
     final res = isEdit
         ? await RequestsService.updateRequest(
             id: widget.existingItem!.id,
             requestType: 'sakit',
-            description: _descriptionController.text.trim(),
-            startDate: _formatDateYmd(_startDate!),
-            endDate: _endDate != null ? _formatDateYmd(_endDate!) : null,
+            description: desc,
+            startDate: startDateStr,
+            endDate: endDateStr,
             attachment: _attachmentFile,
           )
         : await RequestsService.createRequest(
             requestType: 'sakit',
-            description: _descriptionController.text.trim(),
-            startDate: _formatDateYmd(_startDate!),
-            endDate: _endDate != null ? _formatDateYmd(_endDate!) : null,
+            description: desc,
+            startDate: startDateStr,
+            endDate: endDateStr,
             attachment: _attachmentFile,
+            useDedicatedEndpoint: true,
           );
 
     if (!mounted) return;
@@ -107,36 +119,54 @@ class _SakitScreenState extends State<SakitScreen> {
       backgroundColor: AppColors.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(
-          widget.existingItem != null ? 'Edit Pengajuan Sakit' : 'Pengajuan Sakit',
+          widget.existingItem != null ? 'Edit Pengajuan Tidak Masuk (Sakit)' : 'Pengajuan Tidak Masuk (Sakit)',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.surfaceContainerLowest,
         scrolledUnderElevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      body: ArtechLoadingWidget.overlay(
+        isLoading: _isLoading,
+        message: widget.existingItem != null ? 'Menyimpan perubahan surat sakit...' : 'Mengirim pengajuan sakit...',
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Info banner
+              // Info banner keselarasan absensi & SKD
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.errorContainer.withValues(alpha: 0.2),
+                  color: AppColors.errorContainer.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
                 ),
-                child: const Row(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, color: AppColors.error, size: 20),
-                    SizedBox(width: 10),
+                    const Icon(Icons.info_outline, color: AppColors.error, size: 20),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        'Lampirkan surat keterangan dokter jika sakit berlangsung lebih dari 1 hari kerja.',
-                        style: TextStyle(fontSize: 12, color: AppColors.error, height: 1.3),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Informasi Pengajuan Sakit',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.error,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Gunakan formulir ini jika berhalangan hadir karena kondisi medis/sakit. Lampirkan Surat Keterangan Dokter (SKD) atau resep obat untuk mempermudah verifikasi. Presensi otomatis tercatat sebagai "Sakit" setelah disetujui penuh oleh HCGA.',
+                            style: TextStyle(fontSize: 11.5, color: Color(0xFFB91C1C), height: 1.35),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -175,16 +205,74 @@ class _SakitScreenState extends State<SakitScreen> {
               ),
               const SizedBox(height: 20),
 
-              _buildInputField(
-                'Keterangan Sakit / Gejala',
-                'Jelaskan kondisi kesehatan atau diagnosa singkat',
-                _descriptionController,
-                maxLines: 3,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Keterangan Sakit / Gejala / Diagnosa',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        ' *',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: _quickSymptomSuggestions.map((suggestion) {
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (_descriptionController.text.trim().isEmpty) {
+                              _descriptionController.text = suggestion;
+                            } else {
+                              _descriptionController.text = '${_descriptionController.text.trim()} - $suggestion';
+                            }
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.errorContainer.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            '+ $suggestion',
+                            style: const TextStyle(fontSize: 10.5, color: Color(0xFFB91C1C), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _descriptionController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Jelaskan kondisi kesehatan, gejala yang dirasakan, atau anjuran dokter...',
+                      hintStyle: TextStyle(color: AppColors.onSurfaceVariant.withValues(alpha: 0.5), fontSize: 12.5),
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Keterangan sakit wajib diisi' : null,
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
 
               Text(
-                'Surat Keterangan Dokter (Opsional)',
+                'Surat Keterangan Dokter (SKD) / Resep (Disarankan)',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -193,7 +281,7 @@ class _SakitScreenState extends State<SakitScreen> {
                 onTap: () async {
                   FilePickerResult? result = await FilePicker.pickFiles(
                     type: FileType.custom,
-                    allowedExtensions: ['jpg', 'pdf', 'png'],
+                    allowedExtensions: ['jpg', 'pdf', 'png', 'webp', 'jpeg'],
                   );
 
                   if (result != null && result.files.single.path != null) {
@@ -250,53 +338,19 @@ class _SakitScreenState extends State<SakitScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: _isLoading
-                    ? ArtechLoadingWidget.button(size: 20)
-                    : Text(widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Sakit', style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  widget.existingItem != null ? 'Simpan Perubahan' : 'Kirim Pengajuan Sakit',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildInputField(
-    String label,
-    String hint,
-    TextEditingController controller, {
-    int maxLines = 1,
-    bool required = true,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-            if (required)
-              Text(' *', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.error, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: AppColors.onSurfaceVariant.withValues(alpha: 0.5)),
-            filled: true,
-            fillColor: AppColors.surface,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
-          ),
-          validator: required ? (value) => value == null || value.trim().isEmpty ? 'Wajib diisi' : null : null,
-        ),
-      ],
-    );
-  }
 
   Widget _buildDatePicker(
     String label,

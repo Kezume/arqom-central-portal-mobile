@@ -19,6 +19,7 @@ import '../../requests/presentation/sakit_screen.dart';
 import '../../requests/presentation/kerja_lembur_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../notifications/data/notifications_service.dart';
+import '../../sop/presentation/sop_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -37,6 +38,39 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isCheckingIn = false;
   bool _isCheckingOut = false;
   Future<Map<String, dynamic>?>? _todayFuture;
+
+  static String _extractStr(dynamic val, {String fallback = ''}) {
+    if (val == null) return fallback;
+    if (val is String) {
+      final s = val.trim();
+      return s.isEmpty ? fallback : s;
+    }
+    if (val is Map) {
+      if (val['recorded'] == false) return fallback;
+      final possible = val['time'] ??
+          val['jam'] ??
+          val['name'] ??
+          val['title'] ??
+          val['label'] ??
+          val['check_in'] ??
+          val['check_out'] ??
+          val['formatted_time'] ??
+          val['created_at'];
+      if (possible != null) {
+        final s = possible.toString().trim();
+        if (s.isNotEmpty) {
+          final parts = s.split(':');
+          if (parts.length >= 3 && parts[0].length == 2 && parts[1].length == 2) {
+            return '${parts[0]}:${parts[1]}';
+          }
+          return s;
+        }
+      }
+      return fallback;
+    }
+    final s = val.toString().trim();
+    return s.isEmpty ? fallback : s;
+  }
 
   Future<Position?> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -116,6 +150,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleAttendance(bool isCheckIn) async {
+    if (!AttendanceService.isSelfieAttendanceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Presensi kamera selfie sementara dinonaktifkan karena sudah terhubung ke mesin absensi (FingerSpot).',
+            ),
+            backgroundColor: Color(0xFF0037B0),
+          ),
+        );
+      }
+      return;
+    }
+
     if (!isCheckIn) {
       final hour = DateTime.now().hour;
       if (hour < 17) {
@@ -152,10 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final todayData = await AttendanceService.getToday();
-      if (isCheckIn &&
-          todayData != null &&
-          todayData['check_in'] != null &&
-          todayData['check_in'] != '--:--') {
+      final String checkInStr = _extractStr(todayData?['check_in'], fallback: '--:--');
+      if (isCheckIn && checkInStr != '--:--') {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -188,6 +234,13 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
+      if (mounted) {
+        ArtechLoadingWidget.showLoadingDialog(
+          context,
+          message: isCheckIn ? 'Memproses absensi masuk...' : 'Memproses absensi pulang...',
+        );
+      }
+
       final result = isCheckIn
           ? await AttendanceService.checkIn(
               position.latitude.toString(),
@@ -201,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
 
       if (mounted) {
+        ArtechLoadingWidget.hideLoadingDialog(context);
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -223,6 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
+        ArtechLoadingWidget.hideLoadingDialog(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Terjadi kesalahan. Coba lagi.'),
@@ -250,15 +305,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadDashboardData() async {
-    final response = await DashboardService.getDashboardData();
-    if (mounted) {
-      setState(() {
-        if (response['success'] == true) {
-          _announcements = response['announcements'] as List<Announcement>;
-          _activities = response['activities'] as List<Activity>;
-        }
-        _isLoadingDashboard = false;
-      });
+    try {
+      final response = await DashboardService.getDashboardData();
+      if (mounted) {
+        setState(() {
+          if (response['success'] == true) {
+            final rawAnn = response['announcements'];
+            if (rawAnn is List<Announcement>) {
+              _announcements = rawAnn;
+            }
+            final rawAct = response['activities'];
+            if (rawAct is List<Activity>) {
+              _activities = rawAct;
+            }
+          }
+          _isLoadingDashboard = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingDashboard = false);
+      }
     }
   }
 
@@ -346,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SafeArea(
                     bottom: false,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -441,6 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTopBar(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // Frosted Glass Brand Capsule
         Container(
@@ -531,11 +599,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ─── PROFILE ROW (USER, ROLE & WORK STATUS) ───────────────────────────
   Widget _buildProfileRow(BuildContext context) {
-    final name = _userData?['name'] ?? 'Pengguna';
+    final rawName = _userData?['employee']?['name'] ?? _userData?['name'];
+    final name = _extractStr(rawName, fallback: 'Pengguna');
     final firstName = name.split(' ').first;
-    final role = _userData?['position'] ?? _userData?['role'] ?? 'Staff';
-    final photoUrl = _userData?['profile_photo_url'] ??
-        'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
+    final rawRole = _userData?['employee']?['position'] ??
+        _userData?['position'] ??
+        _userData?['role'];
+    final role = _extractStr(rawRole, fallback: 'Staff');
+    final rawPhoto = _userData?['profile_photo_url'] ??
+        _userData?['employee']?['profile_photo_url'];
+    final photoUrl = (rawPhoto is String && rawPhoto.isNotEmpty)
+        ? rawPhoto
+        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
 
     return Row(
       children: [
@@ -657,21 +732,64 @@ class _HomeScreenState extends State<HomeScreen> {
       future: _todayFuture,
       builder: (context, snapshot) {
         final data = snapshot.data;
-        final bool isCheckedIn = data != null &&
-            data['check_in'] != null &&
-            data['check_in'] != '--:--';
-        final bool isCheckedOut = data != null &&
-            data['check_out'] != null &&
-            data['check_out'] != '--:--';
-        final String checkInTime = data?['check_in'] ?? '--:--';
-        final String checkOutTime = data?['check_out'] ?? '--:--';
+        final String checkInTime = _extractStr(data?['check_in'], fallback: '--:--');
+        final String checkOutTime = _extractStr(data?['check_out'], fallback: '--:--');
+        final bool isCheckedIn = checkInTime != '--:--';
+        final bool isCheckedOut = checkOutTime != '--:--';
 
         final String statusText;
         final Color statusColor;
         final Color statusBg;
         final IconData statusIcon;
 
-        if (isCheckedOut) {
+        final rawStatus = data?['status']?.toString();
+        final rawBadge = data?['status_badge']?.toString().toLowerCase();
+        final approvedRequest = data?['approved_request'] is Map<String, dynamic>
+            ? data!['approved_request'] as Map<String, dynamic>
+            : null;
+        final bool isApprovedRequest = (data?['status_source']?.toString().toLowerCase() == 'approved_request') || approvedRequest != null;
+
+        if (rawStatus != null && rawStatus.isNotEmpty && rawStatus.toLowerCase() != 'belum presensi') {
+          statusText = rawStatus;
+          final sLower = rawStatus.toLowerCase();
+          if (sLower.contains('cuti')) {
+            statusColor = AppColors.primary;
+            statusBg = const Color(0xFFEFF6FF);
+            statusIcon = Icons.beach_access_rounded;
+          } else if (sLower.contains('izin')) {
+            statusColor = Colors.orange.shade800;
+            statusBg = const Color(0xFFFFF7ED);
+            statusIcon = Icons.event_busy_rounded;
+          } else if (sLower.contains('sakit')) {
+            statusColor = AppColors.error;
+            statusBg = const Color(0xFFFEF2F2);
+            statusIcon = Icons.medical_services_rounded;
+          } else if (sLower.contains('lembur')) {
+            statusColor = Colors.indigo;
+            statusBg = const Color(0xFFEEF2FF);
+            statusIcon = Icons.access_time_filled_rounded;
+          } else if (sLower.contains('dinas')) {
+            statusColor = AppColors.tertiary;
+            statusBg = const Color(0xFFF5F3FF);
+            statusIcon = Icons.flight_takeoff_rounded;
+          } else if (rawBadge == 'success' || sLower.contains('hadir') || sLower.contains('lengkap')) {
+            statusColor = const Color(0xFF16A34A);
+            statusBg = const Color(0xFFDCFCE7);
+            statusIcon = Icons.check_circle_rounded;
+          } else if (rawBadge == 'warning' || sLower.contains('lambat')) {
+            statusColor = const Color(0xFFD97706);
+            statusBg = const Color(0xFFFEF3C7);
+            statusIcon = Icons.access_time_filled_rounded;
+          } else if (rawBadge == 'error' || sLower.contains('tidak')) {
+            statusColor = const Color(0xFFDC2626);
+            statusBg = const Color(0xFFFEE2E2);
+            statusIcon = Icons.cancel_rounded;
+          } else {
+            statusColor = const Color(0xFF0D9488);
+            statusBg = const Color(0xFFCCFBF1);
+            statusIcon = Icons.verified_rounded;
+          }
+        } else if (isCheckedOut) {
           statusText = 'Presensi Lengkap';
           statusColor = const Color(0xFF0D9488);
           statusBg = const Color(0xFFCCFBF1);
@@ -689,6 +807,13 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         final bool canCheckOut = DateTime.now().hour >= 17;
+        final rawTarget = data?['schedule']?['check_in_target']?.toString();
+        final limitText = (rawTarget != null && rawTarget.length >= 5)
+            ? 'Batas ${rawTarget.substring(0, 5)} WIB'
+            : 'Batas 08:15 WIB';
+        final sourceLabel = data?['source_label']?.toString();
+        final isFingerSpot = (data?['source'] ?? '').toString().toLowerCase().contains('finger') ||
+            (sourceLabel ?? '').toLowerCase().contains('mesin');
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -720,29 +845,85 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                    decoration: BoxDecoration(
-                      color: statusBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, color: statusColor, size: 13),
-                        const SizedBox(width: 5),
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
+                  Expanded(
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, color: statusColor, size: 13),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              statusText,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
-                        ),
-                      ],
+                          if (isApprovedRequest) ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.assignment_turned_in_rounded, size: 10, color: statusColor),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    'Pengajuan ACC',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else if (isFingerSpot) ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.fingerprint, size: 10, color: statusColor),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    'FingerSpot',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
 
                   // Limit Chip
                   Container(
@@ -752,18 +933,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.schedule_rounded,
                           size: 12,
                           color: Color(0xFF64748B),
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
-                          'Batas 08:15 WIB',
-                          style: TextStyle(
+                          limitText,
+                          style: const TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF475569),
@@ -938,10 +1119,61 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 16),
 
-              // 4. Interactive Action Buttons (Masuk Kerja & Pulang)
-              Row(
-                children: [
-                  // Tombol Masuk Kerja
+              // 4. Interactive Action Buttons (Masuk Kerja & Pulang) / Info Mesin Absensi
+              if (!AttendanceService.isSelfieAttendanceEnabled)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0037B0).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.fingerprint_rounded,
+                          size: 19,
+                          color: Color(0xFF0037B0),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Presensi Mesin FingerSpot Aktif',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Presensi otomatis tercatat melalui mesin absensi (FingerSpot).',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Row(
+                  children: [
+                    // Tombol Masuk Kerja
                   Expanded(
                     child: SizedBox(
                       height: 46,
@@ -1000,9 +1232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? null
                                       : () => _handleAttendance(true),
                                   child: Center(
-                                    child: _isCheckingIn
-                                        ? ArtechLoadingWidget.button(size: 18)
-                                        : const Row(
+                                    child: const Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
@@ -1091,10 +1321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ? null
                                           : () => _handleAttendance(false),
                                       child: Center(
-                                        child: _isCheckingOut
-                                            ? ArtechLoadingWidget.button(
-                                                size: 18)
-                                            : const Row(
+                                        child: const Row(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
                                                 children: [
@@ -1197,6 +1424,11 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(builder: (_) => const AlmatsuratScreen()),
         );
       }),
+      _QuickItem(Icons.menu_book_rounded, 'SOP & Dokumen', () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const SopListScreen()),
+        );
+      }),
     ];
 
     return Column(
@@ -1213,7 +1445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
-              '8 Layanan',
+              '${items.length} Layanan',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppColors.onSurfaceVariant,
                     fontSize: 10,
