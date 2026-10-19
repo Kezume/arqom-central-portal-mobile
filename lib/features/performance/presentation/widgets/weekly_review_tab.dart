@@ -8,10 +8,7 @@ import '../../data/performance_service.dart';
 class WeeklyReviewTab extends StatefulWidget {
   final VoidCallback onDataChanged;
 
-  const WeeklyReviewTab({
-    super.key,
-    required this.onDataChanged,
-  });
+  const WeeklyReviewTab({super.key, required this.onDataChanged});
 
   @override
   State<WeeklyReviewTab> createState() => _WeeklyReviewTabState();
@@ -82,6 +79,24 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     }
   }
 
+  /// Mendapatkan semua item yang dapat direview sesuai aturan API:
+  /// - Jika target induk memiliki sub_items, ambil setiap sub-target di dalamnya.
+  /// - Jika sub_items kosong, ambil target tersebut secara langsung.
+  List<WeeklyReviewItem> get _reviewableItems {
+    final list = <WeeklyReviewItem>[];
+    if (_reviewData == null) return list;
+    for (final plan in _reviewData!.plans) {
+      for (final item in plan.items) {
+        if (item.hasSubItems) {
+          list.addAll(item.subItems);
+        } else {
+          list.add(item);
+        }
+      }
+    }
+    return list;
+  }
+
   void _initLocalFormState(WeeklyReviewData data) {
     // Clear old controllers
     for (final c in _obstacleControllers.values) {
@@ -101,21 +116,25 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
 
     for (final plan in data.plans) {
       for (final item in plan.items) {
-        final st = item.executionStatus;
-        final prog = item.progressPercent.toDouble().clamp(0.0, 100.0);
-        final obs = item.obstacle ?? '';
-        final imp = item.improvementPlan ?? '';
+        // Inisialisasi item yang dapat direview: jika punya sub_items, inisialisasi sub_items
+        final targetsToInit = item.hasSubItems ? item.subItems : [item];
+        for (final target in targetsToInit) {
+          final st = target.executionStatus;
+          final prog = target.progressPercent.toDouble().clamp(0.0, 100.0);
+          final obs = target.obstacle ?? '';
+          final imp = target.improvementPlan ?? '';
 
-        _itemStatus[item.id] = st;
-        _itemProgress[item.id] = prog;
-        _obstacleControllers[item.id] = TextEditingController(text: obs);
-        _improvementControllers[item.id] = TextEditingController(text: imp);
+          _itemStatus[target.id] = st;
+          _itemProgress[target.id] = prog;
+          _obstacleControllers[target.id] = TextEditingController(text: obs);
+          _improvementControllers[target.id] = TextEditingController(text: imp);
 
-        // Record initial baseline
-        _initialStatus[item.id] = st;
-        _initialProgress[item.id] = prog.round();
-        _initialObstacle[item.id] = obs.trim();
-        _initialImprovement[item.id] = imp.trim();
+          // Record initial baseline
+          _initialStatus[target.id] = st;
+          _initialProgress[target.id] = prog.round();
+          _initialObstacle[target.id] = obs.trim();
+          _initialImprovement[target.id] = imp.trim();
+        }
       }
     }
   }
@@ -175,35 +194,34 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   bool get _hasAnyChanges {
     if (_reviewData == null || _initialStatus.isEmpty) return false;
 
-    for (final plan in _reviewData!.plans) {
-      for (final item in plan.items) {
-        final id = item.id;
-        final currentStatus = _itemStatus[id] ?? _initialStatus[id] ?? item.executionStatus;
-        final initStatus = _initialStatus[id] ?? item.executionStatus;
+    for (final target in _reviewableItems) {
+      final id = target.id;
+      final currentStatus =
+          _itemStatus[id] ?? _initialStatus[id] ?? target.executionStatus;
+      final initStatus = _initialStatus[id] ?? target.executionStatus;
 
-        // 1. Status changed
-        if (currentStatus != initStatus) return true;
+      // 1. Status changed
+      if (currentStatus != initStatus) return true;
 
-        // 2. Progress changed (relevant when in_progress)
-        if (currentStatus == 'in_progress') {
-          final initProg = _initialProgress[id] ?? item.progressPercent.round();
-          final currProg = (_itemProgress[id] ?? 0.0).round();
-          if (currProg != initProg) return true;
-        }
+      // 2. Progress changed (relevant when in_progress)
+      if (currentStatus == 'in_progress') {
+        final initProg = _initialProgress[id] ?? target.progressPercent.round();
+        final currProg = (_itemProgress[id] ?? 0.0).round();
+        if (currProg != initProg) return true;
+      }
 
-        // 3. Obstacle changed (relevant when not completed)
-        if (currentStatus != 'completed') {
-          final initObs = _initialObstacle[id] ?? '';
-          final currObs = (_obstacleControllers[id]?.text ?? '').trim();
-          if (currObs != initObs) return true;
-        }
+      // 3. Obstacle changed (relevant when not completed)
+      if (currentStatus != 'completed') {
+        final initObs = _initialObstacle[id] ?? '';
+        final currObs = (_obstacleControllers[id]?.text ?? '').trim();
+        if (currObs != initObs) return true;
+      }
 
-        // 4. Improvement plan changed (relevant when completed)
-        if (currentStatus == 'completed') {
-          final initImp = _initialImprovement[id] ?? '';
-          final currImp = (_improvementControllers[id]?.text ?? '').trim();
-          if (currImp != initImp) return true;
-        }
+      // 4. Improvement plan changed (relevant when completed)
+      if (currentStatus == 'completed') {
+        final initImp = _initialImprovement[id] ?? '';
+        final currImp = (_improvementControllers[id]?.text ?? '').trim();
+        if (currImp != initImp) return true;
       }
     }
     return false;
@@ -212,12 +230,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   Future<void> _submitBatchReview() async {
     if (_reviewData == null) return;
 
-    final allItems = <WeeklyReviewItem>[];
-    for (final p in _reviewData!.plans) {
-      allItems.addAll(p.items);
-    }
+    final reviewable = _reviewableItems;
 
-    if (allItems.isEmpty) {
+    if (reviewable.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tidak ada item untuk dievaluasi pada pekan ini.'),
@@ -229,29 +244,38 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
 
     final nav = Navigator.of(context, rootNavigator: true);
     setState(() => _isSubmitting = true);
-    ArtechLoadingWidget.showLoadingDialog(context, message: 'Menyimpan & mengevaluasi...');
+    ArtechLoadingWidget.showLoadingDialog(
+      context,
+      message: 'Menyimpan & mengevaluasi...',
+    );
 
     late final PerformanceApiResponse<Map<String, dynamic>> res;
 
     try {
       final itemsPayload = <String, dynamic>{};
-      for (final item in allItems) {
+      for (final item in reviewable) {
         final status = _itemStatus[item.id] ?? item.executionStatus;
         final isCompleted = status == 'completed';
         final isNotStarted = status == 'not_started';
-        final progress = isCompleted ? 100 : (isNotStarted ? 0 : (_itemProgress[item.id]?.round() ?? 0));
+        final progress =
+            isCompleted
+                ? 100
+                : (isNotStarted ? 0 : (_itemProgress[item.id]?.round() ?? 0));
 
-        final improvement = isCompleted
-            ? (_improvementControllers[item.id]?.text.trim().isNotEmpty == true
-                ? _improvementControllers[item.id]!.text.trim()
-                : null)
-            : null;
+        final improvement =
+            isCompleted
+                ? (_improvementControllers[item.id]?.text.trim().isNotEmpty ==
+                        true
+                    ? _improvementControllers[item.id]!.text.trim()
+                    : null)
+                : null;
 
-        final obstacle = !isCompleted
-            ? (_obstacleControllers[item.id]?.text.trim().isNotEmpty == true
-                ? _obstacleControllers[item.id]!.text.trim()
-                : null)
-            : null;
+        final obstacle =
+            !isCompleted
+                ? (_obstacleControllers[item.id]?.text.trim().isNotEmpty == true
+                    ? _obstacleControllers[item.id]!.text.trim()
+                    : null)
+                : null;
 
         itemsPayload[item.id.toString()] = {
           'execution_status': status,
@@ -262,11 +286,15 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
       }
 
       final dateStr = _formatDate(_currentWeekDate);
+      debugPrint(
+        '[WeeklyReviewTab] Submitting batch review for $dateStr with ${itemsPayload.length} items...',
+      );
       res = await PerformanceService.submitWeeklyReviewBatch(
         weekDate: dateStr,
         items: itemsPayload,
       );
     } catch (e) {
+      debugPrint('[WeeklyReviewTab] Error submitting review: $e');
       res = PerformanceApiResponse(
         success: false,
         statusCode: 0,
@@ -285,16 +313,52 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     if (!mounted) return;
 
     if (res.success) {
-      for (final item in allItems) {
-        final id = item.id;
-        final currentStatus = _itemStatus[id] ?? item.executionStatus;
-        final isCompleted = currentStatus == 'completed';
-        final isNotStarted = currentStatus == 'not_started';
-        final progress = isCompleted ? 100 : (isNotStarted ? 0 : (_itemProgress[id]?.round() ?? 0));
-        _initialStatus[id] = currentStatus;
-        _initialProgress[id] = progress;
-        _initialObstacle[id] = (_obstacleControllers[id]?.text ?? '').trim();
-        _initialImprovement[id] = (_improvementControllers[id]?.text ?? '').trim();
+      // Perbarui baseline sesuai response server atau input lokal
+      if (res.data != null && res.data!['items'] is List) {
+        for (final rawItem in res.data!['items']) {
+          if (rawItem is Map) {
+            final id =
+                rawItem['id'] is int
+                    ? rawItem['id']
+                    : int.tryParse(rawItem['id'].toString());
+            if (id != null) {
+              final status =
+                  rawItem['execution_status']?.toString() ?? 'not_started';
+              final prog =
+                  (rawItem['progress_percent'] ?? 0) is num
+                      ? (rawItem['progress_percent'] as num).round()
+                      : 0;
+              final obs = rawItem['obstacle']?.toString() ?? '';
+              final imp = rawItem['improvement_plan']?.toString() ?? '';
+
+              _initialStatus[id] = status;
+              _initialProgress[id] = prog;
+              _initialObstacle[id] = obs.trim();
+              _initialImprovement[id] = imp.trim();
+
+              _itemStatus[id] = status;
+              _itemProgress[id] = prog.toDouble();
+              _obstacleControllers[id]?.text = obs;
+              _improvementControllers[id]?.text = imp;
+            }
+          }
+        }
+      } else {
+        for (final item in reviewable) {
+          final id = item.id;
+          final currentStatus = _itemStatus[id] ?? item.executionStatus;
+          final isCompleted = currentStatus == 'completed';
+          final isNotStarted = currentStatus == 'not_started';
+          final progress =
+              isCompleted
+                  ? 100
+                  : (isNotStarted ? 0 : (_itemProgress[id]?.round() ?? 0));
+          _initialStatus[id] = currentStatus;
+          _initialProgress[id] = progress;
+          _initialObstacle[id] = (_obstacleControllers[id]?.text ?? '').trim();
+          _initialImprovement[id] =
+              (_improvementControllers[id]?.text ?? '').trim();
+        }
       }
 
       if (mounted) {
@@ -302,12 +366,19 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     res.message,
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 13),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -326,7 +397,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           SnackBar(
             content: Text(res.message, style: GoogleFonts.plusJakartaSans()),
             backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -357,9 +428,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         const SizedBox(height: 16),
 
         if (_isLoading)
-          ArtechLoadingWidget.page(
-            message: 'Memuat review mingguan...',
-          )
+          ArtechLoadingWidget.page(message: 'Memuat review mingguan...')
         else if (_errorMessage != null)
           Center(
             child: Padding(
@@ -371,7 +440,10 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                   Text(
                     _errorMessage!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.error, fontSize: 13),
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
@@ -394,9 +466,10 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   }
 
   Widget _buildWeekNavigator() {
-    final label = _reviewData?.week.label.isNotEmpty == true
-        ? _reviewData!.week.label
-        : _formatDate(_currentWeekDate);
+    final label =
+        _reviewData?.week.label.isNotEmpty == true
+            ? _reviewData!.week.label
+            : _formatDate(_currentWeekDate);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -416,7 +489,10 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left_rounded, color: Color(0xFF0037B0)),
+            icon: const Icon(
+              Icons.chevron_left_rounded,
+              color: Color(0xFF0037B0),
+            ),
             onPressed: () => _shiftWeek(-7),
             tooltip: 'Pekan Sebelumnya',
             visualDensity: VisualDensity.compact,
@@ -437,7 +513,11 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                         color: const Color(0xFF0037B0).withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF0037B0)),
+                      child: const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 14,
+                        color: Color(0xFF0037B0),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Flexible(
@@ -466,14 +546,21 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B), size: 20),
+                    const Icon(
+                      Icons.arrow_drop_down_rounded,
+                      color: Color(0xFF64748B),
+                      size: 20,
+                    ),
                   ],
                 ),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF0037B0)),
+            icon: const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF0037B0),
+            ),
             onPressed: () => _shiftWeek(7),
             tooltip: 'Pekan Berikutnya',
             visualDensity: VisualDensity.compact,
@@ -487,10 +574,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     final data = _reviewData;
     if (data == null) return const SizedBox.shrink();
 
-    final allItems = <WeeklyReviewItem>[];
-    for (final p in data.plans) {
-      allItems.addAll(p.items);
-    }
+    final reviewable = _reviewableItems;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -499,7 +583,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         _buildTimingBanner(data),
         const SizedBox(height: 14),
 
-        // Summary Scorecard
+        // Summary Scorecard (dihitung dari item yang dapat direview)
         _buildSummaryScorecard(data.summary),
         const SizedBox(height: 16),
 
@@ -509,17 +593,27 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           decoration: BoxDecoration(
             color: const Color(0xFF0037B0).withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF0037B0).withValues(alpha: 0.2)),
+            border: Border.all(
+              color: const Color(0xFF0037B0).withValues(alpha: 0.2),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF0037B0)),
+              const Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: Color(0xFF0037B0),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Aturan Evaluasi: Jika status "Selesai", progres otomatis 100% dan isi rencana perbaikan. Jika "Sedang Berjalan", isi kendala yang dihadapi. Sistem akan otomatis menghitung ulang capaian Anda.',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF475569), height: 1.35),
+                  'Aturan Evaluasi: Evaluasi dilakukan pada sub-target jika target mempunyai rincian sub-target. Jika status "Selesai", progres otomatis 100% dan isi rencana perbaikan. Jika "Sedang Berjalan", isi kendala. Status target induk akan dihitung otomatis oleh sistem.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFF475569),
+                    height: 1.35,
+                  ),
                 ),
               ),
             ],
@@ -532,7 +626,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Item Evaluasi Mingguan (${allItems.length})',
+              'Item Evaluasi Mingguan (${reviewable.length})',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
@@ -543,44 +637,58 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         ),
         const SizedBox(height: 12),
 
-        if (allItems.isEmpty)
+        if (reviewable.isEmpty)
           _buildEmptyState()
         else ...[
-          ...allItems.map((item) => _buildReviewItemCard(item)),
+          // Render item per plan group
+          ...data.plans.expand((plan) => plan.items).map((item) {
+            if (item.hasSubItems) {
+              return _buildParentTargetSection(item);
+            } else {
+              return _buildReviewItemCard(item);
+            }
+          }),
           const SizedBox(height: 16),
 
           // Submit Batch Button (Only visible when user makes changes)
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SizeTransition(sizeFactor: animation, child: child),
-            ),
-            child: _hasAnyChanges
-                ? Padding(
-                    key: const ValueKey('submit_btn_visible'),
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: ElevatedButton.icon(
-                      onPressed: _isSubmitting ? null : _submitBatchReview,
-                      icon: const Icon(Icons.send_rounded, size: 18),
-                      label: Text(
-                        'Simpan Sekaligus (${allItems.length} Item Evaluasi)',
-                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
+            transitionBuilder:
+                (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SizeTransition(sizeFactor: animation, child: child),
+                ),
+            child:
+                _hasAnyChanges
+                    ? Padding(
+                      key: const ValueKey('submit_btn_visible'),
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: ElevatedButton.icon(
+                        onPressed: _isSubmitting ? null : _submitBatchReview,
+                        icon: const Icon(Icons.send_rounded, size: 18),
+                        label: Text(
+                          'Simpan Sekaligus (${reviewable.length} Item Evaluasi)',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0037B0),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 2,
+                        ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0037B0),
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(48),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 2,
-                      ),
+                    )
+                    : const SizedBox(
+                      key: ValueKey('submit_btn_hidden'),
+                      height: 12,
                     ),
-                  )
-                : const SizedBox(
-                    key: ValueKey('submit_btn_hidden'),
-                    height: 12,
-                  ),
           ),
         ],
       ],
@@ -611,11 +719,14 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (isUpcoming ? AppColors.secondary : Colors.green).withValues(alpha: 0.1),
+              color: (isUpcoming ? AppColors.secondary : Colors.green)
+                  .withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isUpcoming ? Icons.schedule_rounded : Icons.check_circle_outline_rounded,
+              isUpcoming
+                  ? Icons.schedule_rounded
+                  : Icons.check_circle_outline_rounded,
               color: isUpcoming ? AppColors.secondary : Colors.green,
               size: 18,
             ),
@@ -627,11 +738,19 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               children: [
                 Text(
                   'Jadwal Review Akhir Pekan',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   reviewDate,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
               ],
             ),
@@ -639,7 +758,8 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: (isUpcoming ? AppColors.secondary : Colors.green).withValues(alpha: 0.12),
+              color: (isUpcoming ? AppColors.secondary : Colors.green)
+                  .withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -657,7 +777,29 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   }
 
   Widget _buildSummaryScorecard(WeeklyReviewSummary summary) {
-    final avg = summary.averageProgress.toDouble().clamp(0.0, 100.0);
+    final reviewable = _reviewableItems;
+    final total =
+        reviewable.isNotEmpty ? reviewable.length : summary.totalItems;
+    final completed =
+        reviewable.isNotEmpty
+            ? reviewable
+                .where(
+                  (i) =>
+                      (_itemStatus[i.id] ?? i.executionStatus) == 'completed',
+                )
+                .length
+            : summary.completedItems;
+    final avg =
+        reviewable.isNotEmpty
+            ? (reviewable.fold<double>(
+                      0.0,
+                      (acc, i) =>
+                          acc +
+                          (_itemProgress[i.id] ?? i.progressPercent.toDouble()),
+                    ) /
+                    total)
+                .clamp(0.0, 100.0)
+            : summary.averageProgress.toDouble().clamp(0.0, 100.0);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -693,7 +835,11 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                 Center(
                   child: Text(
                     '${avg.toStringAsFixed(0)}%',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13, color: const Color(0xFF0F172A)),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      color: const Color(0xFF0F172A),
+                    ),
                   ),
                 ),
               ],
@@ -707,14 +853,25 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               children: [
                 Text(
                   'Rata-rata Capaian Pekan Ini',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Text(
-                      '${summary.completedItems} dari ${summary.totalItems} target selesai',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                    Expanded(
+                      child: Text(
+                        '$completed dari $total item target selesai',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -722,10 +879,12 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: summary.totalItems > 0 ? (summary.completedItems / summary.totalItems) : 0,
+                    value: total > 0 ? (completed / total) : 0,
                     minHeight: 5,
                     backgroundColor: const Color(0xFFF1F5F9),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.green,
+                    ),
                   ),
                 ),
               ],
@@ -736,7 +895,281 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     );
   }
 
-  Widget _buildReviewItemCard(WeeklyReviewItem item) {
+  /// Membangun tampilan target induk yang memiliki sub_items
+  /// Status dan progresnya dihitung otomatis dari seluruh sub-target
+  Widget _buildParentTargetSection(WeeklyReviewItem parent) {
+    final priorityColor = _getPriorityColor(parent.priority);
+
+    final subItems = parent.subItems;
+    final totalSubs = subItems.length;
+    final completedSubs =
+        subItems
+            .where(
+              (s) => (_itemStatus[s.id] ?? s.executionStatus) == 'completed',
+            )
+            .length;
+    final notStartedSubs =
+        subItems
+            .where(
+              (s) => (_itemStatus[s.id] ?? s.executionStatus) == 'not_started',
+            )
+            .length;
+
+    final double avgProg =
+        subItems.isEmpty
+            ? 0.0
+            : (subItems.fold<double>(
+                      0.0,
+                      (acc, s) =>
+                          acc +
+                          (_itemProgress[s.id] ?? s.progressPercent.toDouble()),
+                    ) /
+                    totalSubs)
+                .clamp(0.0, 100.0);
+
+    final bool allCompleted = totalSubs > 0 && completedSubs == totalSubs;
+    final bool allNotStarted = totalSubs > 0 && notStartedSubs == totalSubs;
+
+    final String parentStatusLabel =
+        allCompleted
+            ? '100% SELESAI'
+            : (allNotStarted
+                ? '0% BELUM DIMULAI'
+                : '${avgProg.round()}% BERJALAN');
+    final Color parentStatusColor =
+        allCompleted
+            ? Colors.green
+            : (allNotStarted
+                ? const Color(0xFF64748B)
+                : const Color(0xFF0037B0));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color:
+              allCompleted
+                  ? Colors.green.withValues(alpha: 0.4)
+                  : const Color(0xFF0037B0).withValues(alpha: 0.25),
+          width: 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0037B0).withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header Target Induk
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0037B0).withValues(alpha: 0.04),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(15),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0037B0),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.account_tree_rounded,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'TARGET INDUK',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: priorityColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              parent.priority.toUpperCase(),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9,
+                                color: priorityColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: parentStatusColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          parentStatusLabel,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: parentStatusColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  parent.title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: const Color(0xFF0F172A),
+                  ),
+                ),
+                if (parent.expectedOutput != null &&
+                    parent.expectedOutput!.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    'Target: ${parent.expectedOutput}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: avgProg / 100.0,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      allCompleted ? Colors.green : const Color(0xFF0037B0),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFFCBD5E1),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 1),
+                        child: Icon(
+                          Icons.info_outline_rounded,
+                          size: 14,
+                          color: Color(0xFF0037B0),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Target induk dihitung otomatis oleh sistem. Kolom evaluasi status, kendala (obstacle), dan rencana perbaikan diisi pada masing-masing sub-target di bawah.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF475569),
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+
+          // Daftar Sub-target
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Sub-target Yang Dievaluasi (${parent.subItems.length})',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF334155),
+                    ),
+                  ),
+                ),
+                ...parent.subItems.map(
+                  (sub) => _buildReviewItemCard(sub, isSubItem: true),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewItemCard(WeeklyReviewItem item, {bool isSubItem = false}) {
     final status = _itemStatus[item.id] ?? item.executionStatus;
     final isCompleted = status == 'completed';
     final isNotStarted = status == 'not_started';
@@ -744,79 +1177,181 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     final priorityColor = _getPriorityColor(item.priority);
     final progress = _itemProgress[item.id] ?? 0.0;
 
-    final obstacleController = _obstacleControllers[item.id];
-    final improvementController = _improvementControllers[item.id];
+    final obstacleController = _obstacleControllers.putIfAbsent(
+      item.id,
+      () => TextEditingController(text: item.obstacle ?? ''),
+    );
+    final improvementController = _improvementControllers.putIfAbsent(
+      item.id,
+      () => TextEditingController(text: item.improvementPlan ?? ''),
+    );
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: EdgeInsets.only(bottom: isSubItem ? 10 : 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isSubItem ? const Color(0xFFF8FAFC) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isCompleted
-              ? Colors.green.withValues(alpha: 0.5)
-              : const Color(0xFFE2E8F0),
-          width: 1.2,
+          color:
+              isCompleted
+                  ? Colors.green.withValues(alpha: 0.5)
+                  : (isSubItem
+                      ? const Color(0xFFCBD5E1)
+                      : const Color(0xFFE2E8F0)),
+          width: isSubItem ? 1.0 : 1.2,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow:
+            isSubItem
+                ? null
+                : [
+                  BoxShadow(
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top Header: Priority & Title
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: priorityColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    item.priority.toUpperCase(),
-                    style: GoogleFonts.plusJakartaSans(fontSize: 9, color: priorityColor, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const Spacer(),
-                if (isCompleted)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_rounded, size: 12, color: Colors.green),
-                        const SizedBox(width: 4),
-                        Text(
-                          '100% SELESAI',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.green),
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (isSubItem)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF475569,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.subdirectory_arrow_right_rounded,
+                                size: 10,
+                                color: Color(0xFF475569),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                'SUB-TARGET',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF475569),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: priorityColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          item.priority.toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9,
+                            color: priorityColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      if (item.targetDate != null &&
+                          item.targetDate!.isNotEmpty)
+                        Text(
+                          '• ${item.targetDate}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
+                  if (isCompleted)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.check_rounded,
+                            size: 12,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '100% SELESAI',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               item.title,
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13.5, color: const Color(0xFF0F172A)),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: const Color(0xFF0F172A),
+              ),
             ),
-            if (item.expectedOutput != null && item.expectedOutput!.isNotEmpty) ...[
-              const SizedBox(height: 4),
+            if (item.expectedOutput != null &&
+                item.expectedOutput!.isNotEmpty) ...[
+              const SizedBox(height: 3),
               Text(
                 'Target: ${item.expectedOutput}',
-                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+            if (item.details != null && item.details!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                item.details!,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10.5,
+                  color: const Color(0xFF94A3B8),
+                ),
               ),
             ],
             const SizedBox(height: 12),
@@ -824,16 +1359,38 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
             // Status Selector Tabs
             Text(
               'Evaluasi Status:',
-              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF475569),
+              ),
             ),
             const SizedBox(height: 6),
             Row(
               children: [
-                _buildStatusChoice(item.id, 'completed', 'Selesai', Colors.green, Icons.check_circle_outline_rounded),
+                _buildStatusChoice(
+                  item.id,
+                  'completed',
+                  'Selesai',
+                  Colors.green,
+                  Icons.check_circle_outline_rounded,
+                ),
                 const SizedBox(width: 6),
-                _buildStatusChoice(item.id, 'in_progress', 'Berjalan', const Color(0xFF0037B0), Icons.timelapse_rounded),
+                _buildStatusChoice(
+                  item.id,
+                  'in_progress',
+                  'Berjalan',
+                  const Color(0xFF0037B0),
+                  Icons.timelapse_rounded,
+                ),
                 const SizedBox(width: 6),
-                _buildStatusChoice(item.id, 'not_started', 'Belum', const Color(0xFF64748B), Icons.cancel_outlined),
+                _buildStatusChoice(
+                  item.id,
+                  'not_started',
+                  'Belum',
+                  const Color(0xFF64748B),
+                  Icons.cancel_outlined,
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -843,13 +1400,24 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Capaian Progres:',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+                  Flexible(
+                    child: Text(
+                      'Capaian Progres:',
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF475569),
+                      ),
+                    ),
                   ),
                   Text(
                     '${progress.round()}%',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w800, color: const Color(0xFF0037B0)),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0037B0),
+                    ),
                   ),
                 ],
               ),
@@ -869,12 +1437,23 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Capaian Progres:',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+                  Flexible(
+                    child: Text(
+                      'Capaian Progres:',
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF475569),
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(6),
@@ -883,11 +1462,19 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.lock_outline_rounded, size: 11, color: Color(0xFF64748B)),
+                        const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 11,
+                          color: Color(0xFF64748B),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '0% (Belum Dimulai)',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF64748B),
+                          ),
                         ),
                       ],
                     ),
@@ -921,30 +1508,39 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                 ),
               ),
               const SizedBox(height: 4),
-              if (improvementController != null)
-                TextFormField(
-                  controller: improvementController,
-                  maxLines: 2,
-                  onChanged: (_) => setState(() {}),
-                  style: GoogleFonts.plusJakartaSans(fontSize: 12),
-                  decoration: InputDecoration(
-                    hintText: 'Misal: Mulai integrasi lebih awal di awal pekan agar testing lebih maksimal...',
-                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFF0037B0), width: 1.5),
+              TextFormField(
+                controller: improvementController,
+                maxLines: 2,
+                onChanged: (_) => setState(() {}),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12),
+                decoration: InputDecoration(
+                  hintText:
+                      'Misal: Mulai integrasi lebih awal di awal pekan agar testing lebih maksimal...',
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF0037B0),
+                      width: 1.5,
                     ),
                   ),
                 ),
+              ),
             ] else ...[
               // Obstacle Field
               Text(
@@ -956,30 +1552,39 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                 ),
               ),
               const SizedBox(height: 4),
-              if (obstacleController != null)
-                TextFormField(
-                  controller: obstacleController,
-                  maxLines: 2,
-                  onChanged: (_) => setState(() {}),
-                  style: GoogleFonts.plusJakartaSans(fontSize: 12),
-                  decoration: InputDecoration(
-                    hintText: 'Misal: Menunggu konfirmasi aset dari tim desain atau akses kredensial gateway...',
-                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFF0037B0), width: 1.5),
+              TextFormField(
+                controller: obstacleController,
+                maxLines: 2,
+                onChanged: (_) => setState(() {}),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12),
+                decoration: InputDecoration(
+                  hintText:
+                      'Misal: Menunggu konfirmasi aset dari tim desain atau akses kredensial gateway...',
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF0037B0),
+                      width: 1.5,
                     ),
                   ),
                 ),
+              ),
             ],
           ],
         ),
@@ -1002,9 +1607,12 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         onTap: () => _onStatusChanged(itemId, value),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? activeColor.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
+            color:
+                isSelected
+                    ? activeColor.withValues(alpha: 0.12)
+                    : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? activeColor : const Color(0xFFE2E8F0),
@@ -1013,15 +1621,24 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: isSelected ? activeColor : const Color(0xFF64748B)),
+              Icon(
+                icon,
+                size: 13,
+                color: isSelected ? activeColor : const Color(0xFF64748B),
+              ),
               const SizedBox(width: 4),
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? activeColor : const Color(0xFF64748B),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10.5,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? activeColor : const Color(0xFF64748B),
+                  ),
                 ),
               ),
             ],
@@ -1037,7 +1654,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: const Column(
         children: [

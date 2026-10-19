@@ -8,6 +8,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:share_plus/share_plus.dart';
 import 'notifications_service.dart';
 import '../presentation/notifications_screen.dart';
+import '../../agenda/data/agenda_service.dart';
+import '../../agenda/presentation/agenda_detail_screen.dart';
+import '../../agenda/presentation/agenda_list_screen.dart';
+import '../../requests/presentation/requests_screen.dart';
+import '../../performance/presentation/performance_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -193,19 +198,15 @@ class PushNotificationService {
     }
   }
 
-  /// Navigasi otomatis saat pop-up notifikasi diketuk
+  /// Navigasi otomatis saat pop-up notifikasi diketuk (Menu 6.4 & 7.9)
   static void _handleMessageNavigation(RemoteMessage message) {
     final data = message.data;
     if (kDebugMode) print('Notifikasi diketuk dengan payload: $data');
 
     final context = navigatorKey?.currentContext;
-    if (context != null) {
-      // Langsung arahkan ke halaman pusat notifikasi
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-      );
-    }
+    if (context == null) return;
+
+    _routeFromPayloadData(context, data);
   }
 
   static void _handleNotificationPayload(String? payload) {
@@ -226,12 +227,72 @@ class PushNotificationService {
 
       final context = navigatorKey?.currentContext;
       if (context != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-        );
+        _routeFromPayloadData(context, data);
       }
     } catch (_) {}
+  }
+
+  /// Helper untuk mengarahkan pengguna ke halaman yang tepat berdasarkan kontrak FCM
+  static void _routeFromPayloadData(BuildContext context, Map<String, dynamic> data) {
+    final type = data['type']?.toString();
+
+    // 1. Notifikasi Agenda Perusahaan (Menu 6.4)
+    if (type == 'agenda_reminder' ||
+        type == 'agenda_updated' ||
+        type == 'agenda_cancelled' ||
+        data['entity_type'] == 'central_agenda' ||
+        data['agenda_id'] != null) {
+      final rawId = data['agenda_id'] ?? data['entity_id'];
+      final agendaId = rawId != null ? int.tryParse(rawId.toString()) : null;
+
+      if (type == 'agenda_cancelled') {
+        AgendaService.clearCache();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AgendaListScreen()),
+        );
+      } else if (agendaId != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AgendaDetailScreen(agendaId: agendaId)),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AgendaListScreen()),
+        );
+      }
+      return;
+    }
+
+    // 2. Notifikasi Pengajuan Izin/Cuti/Lembur/Dinas (Menu 7.8)
+    if (data['request_id'] != null ||
+        type == 'request_approved' ||
+        type == 'request_rejected' ||
+        type == 'request_submitted') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RequestsScreen()),
+      );
+      return;
+    }
+
+    // 3. Notifikasi Pengingat Logbook Harian (Menu 6.4 & 7.9)
+    if (type == 'performance_daily_reminder' ||
+        data['action_url']?.toString().contains('daily') == true ||
+        data['action_url']?.toString().contains('logbook') == true) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PerformanceScreen()),
+      );
+      return;
+    }
+
+    // Default: Buka pusat notifikasi
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    );
   }
 
   /// Tampilkan pop-up notifikasi saat proses unduhan dimulai

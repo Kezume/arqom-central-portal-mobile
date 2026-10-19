@@ -1,9 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,7 +23,6 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   late Future<Map<String, dynamic>?> _todayFuture;
-  late Future<Position> _positionFuture;
   late Future<AttendanceHistoryResponse?> _historyResponseFuture;
 
   List<AttendanceEmployee> _availableEmployees = [];
@@ -76,40 +71,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     } catch (_) {}
   }
 
-  Future<File?> _takePhoto() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 50,
-      maxWidth: 1024,
-      maxHeight: 1024,
-    );
-    if (image != null) {
-      return File(image.path);
-    }
-    return null;
-  }
-
   Future<void> _refreshData() async {
     setState(() {
       _todayFuture = AttendanceService.getToday(employeeId: _selectedEmployeeId);
-      if (AttendanceService.isMapVisible) {
-        _positionFuture = Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
-      } else {
-        _positionFuture = Future.value(Position(
-          longitude: 110.373963,
-          latitude: -7.832365,
-          timestamp: DateTime.now(),
-          accuracy: 0.0,
-          altitude: 0.0,
-          altitudeAccuracy: 0.0,
-          heading: 0.0,
-          headingAccuracy: 0.0,
-          speed: 0.0,
-          speedAccuracy: 0.0,
-        ));
-      }
       _historyResponseFuture = AttendanceService.getHistory(
         month: _selectedCalendarMonth.month,
         year: _selectedCalendarMonth.year,
@@ -665,130 +629,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           );
         },
       ),
-          if (AttendanceService.isMapVisible) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.outlineVariant.withOpacity(0.5)),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.location_on, color: AppColors.primary, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Mesin Indonesia(PT Arqom Technology Innovation)', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 2),
-                            Text('Yogyakarta, Indonesia', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant), overflow: TextOverflow.ellipsis),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: AppColors.secondaryContainer.withOpacity(0.5), borderRadius: BorderRadius.circular(16)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.radar, size: 12, color: AppColors.secondary),
-                            const SizedBox(width: 4),
-                            Text('Valid', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 10)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 150,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainer,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.outlineVariant.withOpacity(0.5)),
-                    ),
-                    child: Stack(
-                      children: [
-                        FutureBuilder<Position>(
-                          future: _positionFuture,
-                          builder: (context, snapshot) {
-                            final LatLng officeLocation = const LatLng(-7.832365, 110.373963);
-                            List<Marker> markers = [
-                              Marker(
-                                point: officeLocation,
-                                width: 40,
-                                height: 40,
-                                child: const Icon(Icons.business, color: AppColors.primary, size: 40),
-                              ),
-                            ];
-
-                            if (snapshot.hasData) {
-                              markers.add(
-                                Marker(
-                                  point: LatLng(snapshot.data!.latitude, snapshot.data!.longitude),
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(Icons.person_pin_circle, color: AppColors.error, size: 40),
-                                ),
-                              );
-                            }
-
-                            return FlutterMap(
-                              options: MapOptions(
-                                initialCenter: officeLocation,
-                                initialZoom: 16.5,
-                              ),
-                              children: [
-                                TileLayer(
-                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.arqom.mobile',
-                                ),
-                                CircleLayer(
-                                  circles: [
-                                    CircleMarker(
-                                      point: officeLocation,
-                                      radius: 100, // Radius absensi 100 meter
-                                      useRadiusInMeter: true,
-                                      color: AppColors.primary.withValues(alpha: 0.15),
-                                      borderColor: AppColors.primary,
-                                      borderStrokeWidth: 2,
-                                    ),
-                                  ],
-                                ),
-                                MarkerLayer(markers: markers),
-                              ],
-                            );
-                          }
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.95), borderRadius: BorderRadius.circular(6)),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.my_location, size: 12, color: AppColors.secondary),
-                                const SizedBox(width: 4),
-                                Text('Radius Absensi: 100 meter', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, color: AppColors.onSurface)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -826,80 +666,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         Text(status, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, color: statusColor), overflow: TextOverflow.ellipsis),
       ],
     );
-  }
-
-  Future<void> _handlePresensiAction(bool isCheckIn) async {
-    if (!AttendanceService.isSelfieAttendanceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Presensi kamera selfie sementara dinonaktifkan karena sudah terhubung ke mesin absensi (FingerSpot).',
-            ),
-            backgroundColor: Color(0xFF0037B0),
-          ),
-        );
-      }
-      return;
-    }
-
-    File? photo = await _takePhoto();
-    if (photo == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Foto selfie wajib diambil untuk absen ${isCheckIn ? "masuk" : "pulang"}.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-      return;
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Memproses presensi ${isCheckIn ? "masuk" : "pulang"}...')),
-      );
-    }
-
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
-      );
-
-      final result = isCheckIn
-          ? await AttendanceService.checkIn(
-              position.latitude.toString(),
-              position.longitude.toString(),
-              photo,
-            )
-          : await AttendanceService.checkOut(
-              position.latitude.toString(),
-              position.longitude.toString(),
-              photo,
-            );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Presensi diproses'),
-            backgroundColor: result['success'] == true ? const Color(0xFF16A34A) : AppColors.error,
-          ),
-        );
-        if (result['success'] == true) {
-          _refreshData();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal mendapatkan lokasi GPS. Pastikan GPS menyala dan izin diberikan.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
   }
 
   Widget _buildAttendanceActions(BuildContext context) {
@@ -988,210 +754,80 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           );
         }
 
-        if (!AttendanceService.isSelfieAttendanceEnabled) {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0037B0).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.fingerprint_rounded,
-                    color: Color(0xFF0037B0),
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'Presensi Mesin FingerSpot',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13.5,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1.5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDCFCE7),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'Aktif',
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF16A34A),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        isCheckedIn
-                            ? 'Jam masuk sudah tercatat ($checkIn WIB). Silakan scan pada mesin saat jam pulang kerja.'
-                            : 'Perekaman presensi masuk dan pulang otomatis terhubung ke mesin absensi kantor.',
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: Color(0xFF64748B),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (!isCheckedIn) {
-          return Column(
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
             children: [
               Container(
-                width: double.infinity,
-                height: 58,
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0037B0), Color(0xFF1D4ED8)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0037B0).withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  color: const Color(0xFF0037B0).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => _handlePresensiAction(true),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.login_rounded, color: Colors.white, size: 22),
-                          SizedBox(width: 10),
-                          Text(
-                            'Presensi Masuk Kerja',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                child: const Icon(
+                  Icons.fingerprint_rounded,
+                  color: Color(0xFF0037B0),
+                  size: 26,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Ketuk tombol di atas untuk absen masuk (Selfie & GPS)',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          );
-        }
-
-        // isCheckedIn && !isCheckedOut
-        final bool isCheckoutTime = DateTime.now().hour >= 17;
-        return Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 58,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isCheckoutTime
-                      ? [const Color(0xFFE11D48), const Color(0xFFF43F5E)]
-                      : [const Color(0xFFCBD5E1), const Color(0xFF94A3B8)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: isCheckoutTime
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFFE11D48).withValues(alpha: 0.28),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : [],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: isCheckoutTime
-                      ? () => _handlePresensiAction(false)
-                      : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Belum waktunya pulang. Presensi pulang dapat dilakukan mulai pukul 17:00 WIB.'),
-                            ),
-                          );
-                        },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Icon(
-                          isCheckoutTime ? Icons.logout_rounded : Icons.lock_clock_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          isCheckoutTime ? 'Presensi Pulang Kerja' : 'Presensi Pulang (17:00 WIB)',
-                          style: const TextStyle(
-                            color: Colors.white,
+                        const Text(
+                          'Presensi Mesin FingerSpot',
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14.5,
+                            fontSize: 13.5,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Aktif',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF16A34A),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 3),
+                    Text(
+                      isCheckedIn
+                          ? 'Jam masuk sudah tercatat ($checkIn WIB). Silakan scan pada mesin saat jam pulang kerja.'
+                          : 'Perekaman presensi masuk dan pulang otomatis terhubung ke mesin absensi kantor.',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isCheckoutTime
-                  ? 'Ketuk tombol di atas untuk presensi pulang'
-                  : 'Presensi pulang dibuka setelah pukul 17:00 WIB',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

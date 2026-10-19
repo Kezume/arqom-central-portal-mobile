@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_theme.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'features/notifications/data/push_notification_service.dart';
@@ -16,6 +17,9 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+
+  // Inisialisasi format tanggal lokal Indonesia
+  await initializeDateFormatting('id_ID', null);
 
   // Inisialisasi Push Notifications & Channel Pop-Up
   await PushNotificationService.initialize(navKey: navigatorKey);

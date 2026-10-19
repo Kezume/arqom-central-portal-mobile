@@ -8,6 +8,21 @@ class NotificationData {
   final String? note;
   final String? clickAction;
 
+  // Field khusus agenda perusahaan (Menu 6.4)
+  final int? agendaId;
+  final String? entityType;
+  final String? entityId;
+  final String? startsAt;
+  final String? reminderOffsetMinutes;
+  final String? deepLink;
+  final String? priority;
+
+  // Field khusus pengingat logbook (Menu 6.4 & 7.9)
+  final String? actionUrl;
+
+  // Raw data mapping
+  final Map<String, dynamic> rawJson;
+
   NotificationData({
     this.requestId,
     this.requestNumber,
@@ -17,13 +32,28 @@ class NotificationData {
     this.reviewer,
     this.note,
     this.clickAction,
+    this.agendaId,
+    this.entityType,
+    this.entityId,
+    this.startsAt,
+    this.reminderOffsetMinutes,
+    this.deepLink,
+    this.priority,
+    this.actionUrl,
+    this.rawJson = const {},
   });
 
   factory NotificationData.fromJson(Map<String, dynamic> json) {
+    int? parseId(dynamic val) {
+      if (val is int) return val;
+      if (val != null) return int.tryParse(val.toString());
+      return null;
+    }
+
+    final agendaIdParsed = parseId(json['agenda_id']) ?? parseId(json['entity_id']);
+
     return NotificationData(
-      requestId: json['request_id'] is int
-          ? json['request_id']
-          : int.tryParse(json['request_id']?.toString() ?? ''),
+      requestId: parseId(json['request_id']),
       requestNumber: json['request_number']?.toString(),
       requestType: json['request_type']?.toString(),
       status: json['status']?.toString(),
@@ -31,6 +61,15 @@ class NotificationData {
       reviewer: json['reviewer']?.toString(),
       note: json['note']?.toString(),
       clickAction: json['click_action']?.toString(),
+      agendaId: agendaIdParsed,
+      entityType: json['entity_type']?.toString(),
+      entityId: json['entity_id']?.toString(),
+      startsAt: json['starts_at']?.toString(),
+      reminderOffsetMinutes: json['reminder_offset_minutes']?.toString(),
+      deepLink: json['deep_link']?.toString(),
+      priority: json['priority']?.toString(),
+      actionUrl: json['action_url']?.toString(),
+      rawJson: json,
     );
   }
 
@@ -44,8 +83,24 @@ class NotificationData {
       'reviewer': reviewer,
       'note': note,
       'click_action': clickAction,
+      'agenda_id': agendaId,
+      'entity_type': entityType,
+      'entity_id': entityId,
+      'starts_at': startsAt,
+      'reminder_offset_minutes': reminderOffsetMinutes,
+      'deep_link': deepLink,
+      'priority': priority,
+      'action_url': actionUrl,
     };
   }
+
+  bool get isAgenda =>
+      agendaId != null || entityType == 'central_agenda' || deepLink?.contains('agenda') == true;
+
+  bool get isRequest => requestId != null || requestNumber != null;
+
+  bool get isPerformanceDailyReminder =>
+      actionUrl?.contains('logbook') == true || actionUrl?.contains('daily') == true;
 }
 
 class NotificationItem {

@@ -45,3 +45,17 @@ app.*.map.json
 /android/app/release
 .gradle/
 .kotlin/
+
+# Keystore & Signing properties & Credentials
+**/android/key.properties
+**/*.jks
+**/*.keystore
+**/local.properties
+.env*
+*.env
+
+# Windows thumbnail & desktop caches
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.hprof

@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/artech_pull_to_refresh.dart';
-import '../../../core/widgets/artech_loading_widget.dart';
 import '../../../core/widgets/live_clock_widget.dart';
 import '../../auth/data/auth_service.dart';
 import '../../attendance/data/attendance_service.dart';
@@ -20,6 +17,10 @@ import '../../requests/presentation/kerja_lembur_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../notifications/data/notifications_service.dart';
 import '../../sop/presentation/sop_list_screen.dart';
+import '../../agenda/data/agenda_service.dart';
+import '../../agenda/data/models/agenda_models.dart';
+import '../../agenda/presentation/agenda_list_screen.dart';
+import '../../agenda/presentation/agenda_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -34,9 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _userData;
   List<Announcement> _announcements = [];
   List<Activity> _activities = [];
+  List<AgendaItem> _companyAgendas = [];
   bool _isLoadingDashboard = true;
-  bool _isCheckingIn = false;
-  bool _isCheckingOut = false;
   Future<Map<String, dynamic>?>? _todayFuture;
 
   static String _extractStr(dynamic val, {String fallback = ''}) {
@@ -72,228 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return s.isEmpty ? fallback : s;
   }
 
-  Future<Position?> _getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Layanan lokasi dinonaktifkan. Harap nyalakan GPS.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-      return null;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Izin lokasi ditolak.'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return null;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Izin lokasi ditolak secara permanen.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-      return null;
-    }
-
-    try {
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-        timeLimit: const Duration(seconds: 10),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Gagal mendapatkan lokasi (Timeout). Pastikan GPS menyala dan sinyal stabil.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-      return null;
-    }
-  }
-
-  Future<File?> _takePhoto() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 50,
-      maxWidth: 1024,
-      maxHeight: 1024,
-    );
-    if (image != null) {
-      return File(image.path);
-    }
-    return null;
-  }
-
-  Future<void> _handleAttendance(bool isCheckIn) async {
-    if (!AttendanceService.isSelfieAttendanceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Presensi kamera selfie sementara dinonaktifkan karena sudah terhubung ke mesin absensi (FingerSpot).',
-            ),
-            backgroundColor: Color(0xFF0037B0),
-          ),
-        );
-      }
-      return;
-    }
-
-    if (!isCheckIn) {
-      final hour = DateTime.now().hour;
-      if (hour < 17) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Belum waktunya pulang. Anda baru bisa absen pulang setelah jam 17:00.',
-              ),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return;
-      }
-    }
-
-    setState(() {
-      if (isCheckIn) {
-        _isCheckingIn = true;
-      } else {
-        _isCheckingOut = true;
-      }
-    });
-
-    try {
-      final position = await _getCurrentLocation();
-      if (position == null) {
-        setState(() {
-          _isCheckingIn = false;
-          _isCheckingOut = false;
-        });
-        return;
-      }
-
-      final todayData = await AttendanceService.getToday();
-      final String checkInStr = _extractStr(todayData?['check_in'], fallback: '--:--');
-      if (isCheckIn && checkInStr != '--:--') {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Anda sudah absen masuk hari ini.'),
-              backgroundColor: AppColors.primary,
-            ),
-          );
-        }
-        setState(() {
-          _isCheckingIn = false;
-          _isCheckingOut = false;
-        });
-        return;
-      }
-
-      File? photo = await _takePhoto();
-      if (photo == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Foto wajib diambil untuk absensi.'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        setState(() {
-          _isCheckingIn = false;
-          _isCheckingOut = false;
-        });
-        return;
-      }
-
-      if (mounted) {
-        ArtechLoadingWidget.showLoadingDialog(
-          context,
-          message: isCheckIn ? 'Memproses absensi masuk...' : 'Memproses absensi pulang...',
-        );
-      }
-
-      final result = isCheckIn
-          ? await AttendanceService.checkIn(
-              position.latitude.toString(),
-              position.longitude.toString(),
-              photo,
-            )
-          : await AttendanceService.checkOut(
-              position.latitude.toString(),
-              position.longitude.toString(),
-              photo,
-            );
-
-      if (mounted) {
-        ArtechLoadingWidget.hideLoadingDialog(context);
-        if (result['success']) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: AppColors.primary,
-            ),
-          );
-          // Refresh today's attendance data immediately
-          setState(() {
-            _todayFuture = AttendanceService.getToday();
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ArtechLoadingWidget.hideLoadingDialog(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Terjadi kesalahan. Coba lagi.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isCheckingIn = false;
-          _isCheckingOut = false;
-        });
-      }
-    }
-  }
 
   @override
   void initState() {
@@ -301,7 +79,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _todayFuture = AttendanceService.getToday();
     _loadUserData();
     _loadDashboardData();
+    _loadCompanyAgendas();
     NotificationsService.refreshUnreadCount();
+  }
+
+  Future<void> _loadCompanyAgendas() async {
+    try {
+      final res = await AgendaService.getAgendas(perPage: 5);
+      if (mounted && res.success) {
+        setState(() {
+          _companyAgendas = res.items;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadDashboardData() async {
@@ -806,7 +596,6 @@ class _HomeScreenState extends State<HomeScreen> {
           statusIcon = Icons.pending_actions_rounded;
         }
 
-        final bool canCheckOut = DateTime.now().hour >= 17;
         final rawTarget = data?['schedule']?['check_in_target']?.toString();
         final limitText = (rawTarget != null && rawTarget.length >= 5)
             ? 'Batas ${rawTarget.substring(0, 5)} WIB'
@@ -1119,264 +908,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 16),
 
-              // 4. Interactive Action Buttons (Masuk Kerja & Pulang) / Info Mesin Absensi
-              if (!AttendanceService.isSelfieAttendanceEnabled)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0037B0).withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.fingerprint_rounded,
-                          size: 19,
-                          color: Color(0xFF0037B0),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Presensi Mesin FingerSpot Aktif',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Presensi otomatis tercatat melalui mesin absensi (FingerSpot).',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Row(
+              // 4. Info Mesin Absensi FingerSpot
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
                   children: [
-                    // Tombol Masuk Kerja
-                  Expanded(
-                    child: SizedBox(
-                      height: 46,
-                      child: isCheckedIn
-                          ? Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDF4),
-                                borderRadius: BorderRadius.circular(13),
-                                border: Border.all(
-                                  color: const Color(0xFFBBF7D0),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    size: 17,
-                                    color: Color(0xFF16A34A),
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Sudah Masuk',
-                                    style: TextStyle(
-                                      color: Color(0xFF16A34A),
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF0037B0),
-                                    Color(0xFF1D4ED8),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(13),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF0037B0)
-                                        .withValues(alpha: 0.28),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(13),
-                                  onTap: _isCheckingIn
-                                      ? null
-                                      : () => _handleAttendance(true),
-                                  child: Center(
-                                    child: const Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.login_rounded,
-                                                color: Colors.white,
-                                                size: 17,
-                                              ),
-                                              SizedBox(width: 6),
-                                              Text(
-                                                'Masuk Kerja',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                  ),
-                                ),
-                              ),
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0037B0).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.fingerprint_rounded,
+                        size: 19,
+                        color: Color(0xFF0037B0),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Presensi Mesin FingerSpot Aktif',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
                             ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Presensi otomatis tercatat melalui mesin absensi (FingerSpot).',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(width: 10),
-
-                  // Tombol Pulang Kerja
-                  Expanded(
-                    child: SizedBox(
-                      height: 46,
-                      child: isCheckedOut
-                          ? Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEEF2FF),
-                                borderRadius: BorderRadius.circular(13),
-                                border: Border.all(
-                                  color: const Color(0xFFC7D2FE),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    size: 17,
-                                    color: Color(0xFF4F46E5),
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Sudah Pulang',
-                                    style: TextStyle(
-                                      color: Color(0xFF4F46E5),
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : canCheckOut
-                              ? Container(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFE11D48),
-                                        Color(0xFFF43F5E),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(13),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFE11D48)
-                                            .withValues(alpha: 0.28),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(13),
-                                      onTap: _isCheckingOut
-                                          ? null
-                                          : () => _handleAttendance(false),
-                                      child: Center(
-                                        child: const Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.logout_rounded,
-                                                    color: Colors.white,
-                                                    size: 17,
-                                                  ),
-                                                  SizedBox(width: 6),
-                                                  Text(
-                                                    'Pulang Kerja',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 13,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(13),
-                                    border: Border.all(
-                                      color: const Color(0xFFE2E8F0),
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.lock_clock_rounded,
-                                        size: 16,
-                                        color: Color(0xFF94A3B8),
-                                      ),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        'Pulang (17:00)',
-                                        style: TextStyle(
-                                          color: Color(0xFF94A3B8),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -1427,6 +1007,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _QuickItem(Icons.menu_book_rounded, 'SOP & Dokumen', () {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const SopListScreen()),
+        );
+      }),
+      _QuickItem(Icons.event_note_rounded, 'Agenda', () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AgendaListScreen()),
         );
       }),
     ];
@@ -1504,9 +1089,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ─── AGENDA SECTION ──────────────────────────────────────────────────
   Widget _buildAgendaSection(BuildContext context) {
-    if (_isLoadingDashboard) {
+    if (_isLoadingDashboard && _companyAgendas.isEmpty) {
       return _buildShimmerPlaceholder(context, 'Agenda');
     }
+
+    // Jika ada data agenda perusahaan dari API Menu 6
+    if (_companyAgendas.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            'Agenda Perusahaan',
+            '${_companyAgendas.length} agenda terdaftar',
+            actionLabel: 'Lihat Semua',
+            onTapAction: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AgendaListScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          ..._companyAgendas.take(3).map((item) => _buildCompanyAgendaItem(context, item)),
+        ],
+      );
+    }
+
     if (_activities.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -1516,10 +1124,119 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           'Agenda Mendatang',
           '${_activities.length} kegiatan terdaftar',
+          actionLabel: 'Lihat Semua',
+          onTapAction: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AgendaListScreen()),
+            );
+          },
         ),
         const SizedBox(height: 10),
         ..._activities.take(3).map((a) => _buildAgendaItem(context, a)),
       ],
+    );
+  }
+
+  Widget _buildCompanyAgendaItem(BuildContext context, AgendaItem item) {
+    final typeColor = item.typeColor;
+    final typeIcon = item.typeIcon;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AgendaDetailScreen(
+                  agendaId: item.id,
+                  initialItem: item,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: typeColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(typeIcon, size: 11, color: typeColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            item.type,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              color: typeColor,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '• ${item.audienceLabel}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9.5,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        item.title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelLarge
+                            ?.copyWith(fontWeight: FontWeight.w700, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${item.formattedDateRange} · ${item.formattedTimeRange}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                              fontSize: 10,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF94A3B8)),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

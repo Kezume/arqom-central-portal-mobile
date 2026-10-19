@@ -4,6 +4,10 @@ import '../../../core/widgets/artech_loading_widget.dart';
 import '../../../core/widgets/artech_pull_to_refresh.dart';
 import '../data/models/notification_models.dart';
 import '../data/notifications_service.dart';
+import '../../agenda/presentation/agenda_detail_screen.dart';
+import '../../agenda/presentation/agenda_list_screen.dart';
+import '../../requests/presentation/requests_screen.dart';
+import '../../performance/presentation/performance_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -202,9 +206,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
               if (item.data != null) ...[
                 const SizedBox(height: 16),
-                const Text(
-                  'Rincian Pengajuan',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.outline),
+                Text(
+                  item.data!.isAgenda
+                      ? 'Rincian Agenda'
+                      : (item.data!.isPerformanceDailyReminder ? 'Pengingat Kinerja' : 'Rincian Pengajuan'),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.outline),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -216,6 +222,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                   child: Column(
                     children: [
+                      // Agenda details
+                      if (item.data?.agendaId != null)
+                        _buildDetailRow('ID Agenda', '#${item.data!.agendaId}'),
+                      if (item.data?.startsAt != null && item.data!.startsAt!.isNotEmpty)
+                        _buildDetailRow('Jadwal Mulai', item.data!.startsAt!),
+                      if (item.data?.reminderOffsetMinutes != null)
+                        _buildDetailRow('Waktu Pengingat', '${item.data!.reminderOffsetMinutes} menit sebelumnya'),
+                      if (item.data?.deepLink != null)
+                        _buildDetailRow('Deep Link', item.data!.deepLink!),
+
+                      // Request details
                       if (item.data?.requestNumber != null)
                         _buildDetailRow('No. Pengajuan', item.data!.requestNumber!),
                       if (item.data?.requestType != null)
@@ -231,14 +248,88 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               ],
               const SizedBox(height: 20),
+              // Action buttons based on notification context
+              if (item.data?.isAgenda == true && item.data?.agendaId != null) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AgendaDetailScreen(agendaId: item.data!.agendaId!),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                    label: const Text('Buka Detail Agenda'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0037B0),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ] else if (item.data?.isRequest == true) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RequestsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.assignment_rounded, size: 18),
+                    label: const Text('Buka Menu Pengajuan'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0037B0),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ] else if (item.data?.isPerformanceDailyReminder == true || item.type == 'performance_daily_reminder') ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PerformanceScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.insights_rounded, size: 18),
+                    label: const Text('Buka Logbook Kinerja'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0037B0),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF64748B),
                     padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Color(0xFFCBD5E1)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text('Tutup'),
@@ -281,7 +372,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     IconData icon;
     final lower = type.toLowerCase();
 
-    if (lower.contains('approved') || lower.contains('setuju')) {
+    if (lower == 'agenda_reminder') {
+      color = const Color(0xFF0037B0);
+      icon = Icons.event_available_rounded;
+    } else if (lower == 'agenda_updated') {
+      color = const Color(0xFF0D9488);
+      icon = Icons.event_repeat_rounded;
+    } else if (lower == 'agenda_cancelled') {
+      color = AppColors.error;
+      icon = Icons.event_busy_rounded;
+    } else if (lower == 'performance_daily_reminder') {
+      color = const Color(0xFF6366F1);
+      icon = Icons.insights_rounded;
+    } else if (lower.contains('approved') || lower.contains('setuju')) {
       color = const Color(0xFF10B981);
       icon = Icons.check_circle_rounded;
     } else if (lower.contains('rejected') || lower.contains('tolak')) {

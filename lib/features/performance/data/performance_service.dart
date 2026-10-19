@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../auth/data/auth_service.dart';
 import 'models/performance_models.dart';
@@ -417,9 +418,12 @@ class PerformanceService {
       final uri = Uri.parse('${AuthService.baseUrl}/performance/weekly-review')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
+      debugPrint('[PerformanceService] >>> GET $uri');
       final response = await http
           .get(uri, headers: _buildHeaders(token))
           .timeout(const Duration(seconds: 15));
+
+      debugPrint('[PerformanceService] <<< GET Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -449,7 +453,7 @@ class PerformanceService {
   }
 
   /// 4.8 Simpan Batch Weekly Review (Simpan Sekaligus)
-  /// PATCH /api/performance/weekly-review (bisa juga POST)
+  /// PATCH /api/performance/weekly-review (bisa juga menggunakan POST)
   static Future<PerformanceApiResponse<Map<String, dynamic>>> submitWeeklyReviewBatch({
     required String weekDate,
     required Map<String, dynamic> items,
@@ -469,28 +473,45 @@ class PerformanceService {
         'week_date': weekDate,
         'items': items,
       };
+      final bodyJson = jsonEncode(body);
+      final headers = _buildHeaders(token);
+
+      debugPrint('====================================================');
+      debugPrint('[PerformanceService] >>> PATCH $uri');
+      debugPrint('[PerformanceService] Payload (${items.length} items): $bodyJson');
 
       // Try PATCH first as specified in docs
       var response = await http
           .patch(
             uri,
-            headers: _buildHeaders(token),
-            body: jsonEncode(body),
+            headers: headers,
+            body: bodyJson,
           )
           .timeout(const Duration(seconds: 15));
 
-      // If method not allowed (405), try POST as mentioned in docs "(bisa juga menggunakan POST)"
-      if (response.statusCode == 405) {
+      debugPrint('[PerformanceService] <<< PATCH Status: ${response.statusCode}');
+      debugPrint('[PerformanceService] <<< PATCH Body: ${response.body}');
+
+      // If method not allowed (405) or route not found for PATCH (404), fallback to POST
+      if (response.statusCode == 405 || response.statusCode == 404) {
+        debugPrint('[PerformanceService] >>> Fallback to POST $uri ...');
         response = await http
             .post(
               uri,
-              headers: _buildHeaders(token),
-              body: jsonEncode(body),
+              headers: headers,
+              body: bodyJson,
             )
             .timeout(const Duration(seconds: 15));
+        debugPrint('[PerformanceService] <<< POST Status: ${response.statusCode}');
+        debugPrint('[PerformanceService] <<< POST Body: ${response.body}');
       }
+      debugPrint('====================================================');
 
-      final decoded = jsonDecode(response.body);
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(response.body);
+      } catch (_) {}
+
       final isStatusSuccess = decoded is Map &&
           (decoded['status'] == 'success' ||
               decoded['status'] == true ||
@@ -501,9 +522,12 @@ class PerformanceService {
         return PerformanceApiResponse(
           success: true,
           statusCode: response.statusCode,
-          data: decoded['data'] is Map<String, dynamic> ? decoded['data'] : null,
-          message: decoded['message']?.toString() ??
-              'Weekly Review berhasil disimpan dan status kinerja telah dihitung ulang.',
+          data: decoded != null && decoded['data'] is Map<String, dynamic>
+              ? decoded['data'] as Map<String, dynamic>
+              : null,
+          message: decoded != null && decoded['message'] != null
+              ? decoded['message'].toString()
+              : 'Weekly Review berhasil disimpan dan status kinerja telah dihitung ulang.',
         );
       }
 
@@ -513,6 +537,7 @@ class PerformanceService {
         message: _extractErrorMessage(response),
       );
     } catch (e) {
+      debugPrint('[PerformanceService] Exception in submitWeeklyReviewBatch: $e');
       return PerformanceApiResponse(
         success: false,
         statusCode: 0,

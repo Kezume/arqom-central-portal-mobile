@@ -1,0 +1,7 @@
+# Salin file ini menjadi key.properties di folder android/
+# Isi password dan alias sesuai dengan saat membuat upload-keystore.jks
+
+storePassword=password_rahasia_anda
+keyPassword=password_rahasia_anda
+keyAlias=upload
+storeFile=upload-keystore.jks

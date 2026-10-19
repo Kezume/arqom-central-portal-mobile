@@ -265,34 +265,71 @@ class WeeklyPlanData {
 class WeeklyReviewItem {
   final int id;
   final String title;
+  final bool isMainPlan;
+  final int? monthlyTargetId;
   final String priority;
   final String? expectedOutput;
+  final String? details;
+  final String? startDate;
+  final String? targetDate;
   String executionStatus;
   num progressPercent;
   String? obstacle;
   String? improvementPlan;
+  final String? picName;
+  final List<WeeklyReviewItem> subItems;
 
   WeeklyReviewItem({
     required this.id,
     required this.title,
+    this.isMainPlan = false,
+    this.monthlyTargetId,
     required this.priority,
     this.expectedOutput,
+    this.details,
+    this.startDate,
+    this.targetDate,
     required this.executionStatus,
     required this.progressPercent,
     this.obstacle,
     this.improvementPlan,
+    this.picName,
+    this.subItems = const [],
   });
 
+  bool get hasSubItems => subItems.isNotEmpty;
+  bool get isReviewable => !isMainPlan || subItems.isEmpty;
+
   factory WeeklyReviewItem.fromJson(Map<String, dynamic> json) {
+    var rawSub = json['sub_items'] as List<dynamic>?;
+    if (rawSub == null || rawSub.isEmpty) {
+      // Compatibility fallback: daily_tasks
+      rawSub = json['daily_tasks'] as List<dynamic>? ?? [];
+    }
+
+    final parsedSubItems = rawSub
+        .map((e) => WeeklyReviewItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+
     return WeeklyReviewItem(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       title: json['title']?.toString() ?? '',
+      isMainPlan: json['is_main_plan'] == true ||
+          (json['is_main_plan']?.toString().toLowerCase() == 'true'),
+      monthlyTargetId: json['monthly_target_id'] != null
+          ? int.tryParse(json['monthly_target_id'].toString())
+          : null,
       priority: json['priority']?.toString() ?? 'normal',
       expectedOutput: json['expected_output']?.toString(),
+      details: json['details']?.toString(),
+      startDate: json['start_date']?.toString(),
+      targetDate: json['target_date']?.toString(),
       executionStatus: json['execution_status']?.toString() ?? 'not_started',
       progressPercent: json['progress_percent'] ?? 0,
       obstacle: json['obstacle']?.toString(),
       improvementPlan: json['improvement_plan']?.toString(),
+      picName: json['pic_name']?.toString(),
+      subItems: parsedSubItems,
     );
   }
 }

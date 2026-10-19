@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../notifications/data/push_notification_service.dart';
+import '../../agenda/data/agenda_service.dart';
 
 class AuthService {
   static const String baseUrl = 'https://arqomtechnology.cloud/api';
@@ -36,6 +37,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+    AgendaService.clearCache();
   }
 
   static Future<Map<String, dynamic>> login(
