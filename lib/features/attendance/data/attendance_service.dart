@@ -234,7 +234,49 @@ class AttendanceService {
     }
   }
 
-  /// 3.8 Export Rekapan Absensi ke CSV
+  /// 3.6 Ringkasan Kalender dan Absensi Bulanan (Dedicated Endpoint)
+  /// GET /api/attendance/summary?month=...&year=...&employee_id=...
+  /// Alias endpoint — struktur respons identik dengan GET /api/attendance/history.
+  static Future<AttendanceHistoryResponse?> getSummaryDedicated({
+    int? month,
+    int? year,
+    int? employeeId,
+  }) async {
+    try {
+      final token = await AuthService.getToken();
+      if (token == null) return null;
+
+      final queryParams = <String, String>{};
+      if (month != null) queryParams['month'] = month.toString();
+      if (year != null) queryParams['year'] = year.toString();
+      if (employeeId != null) queryParams['employee_id'] = employeeId.toString();
+
+      final uri = Uri.parse('${AuthService.baseUrl}/attendance/summary').replace(
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['data'] != null) {
+          return AttendanceHistoryResponse.fromJson(decoded['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      print("GetSummary Error: $e");
+      return null;
+    }
+  }
+
+  /// 3.7 Export Rekapan Absensi ke CSV
   /// GET /api/attendance/export?month=10&year=2026&employee_id=...
   static Future<String?> exportAttendanceCSV(
     int month,
@@ -273,25 +315,46 @@ class AttendanceService {
     }
   }
 
-  /// Backward-compatible summary accessor
+  /// Backward-compatible summary accessor.
+  /// Menggunakan endpoint dedicated /api/attendance/summary (3.6);
+  /// fallback ke /api/attendance/history jika endpoint summary gagal.
+  /// CATATAN: Endpoint POST check-in/check-out legacy (3.8) tidak digunakan
+  /// di aplikasi mobile baru sesuai kontrak dokumentasi API.
   static Future<Map<String, dynamic>?> getSummary({
     int? month,
     int? year,
     int? employeeId,
   }) async {
-    final res = await getHistory(
+    // Coba endpoint dedicated /summary terlebih dahulu
+    final summaryRes = await getSummaryDedicated(
+      month: month,
+      year: year,
+      employeeId: employeeId,
+    );
+    if (summaryRes != null) {
+      return {
+        'statistics': summaryRes.statistics,
+        'history': summaryRes.history,
+        'employee': summaryRes.employee,
+        'period': summaryRes.period,
+        'schedule': summaryRes.schedule,
+      };
+    }
+
+    // Fallback: gunakan /history jika /summary tidak tersedia
+    final histRes = await getHistory(
       month: month,
       year: year,
       employeeId: employeeId,
       perPage: 31,
     );
-    if (res != null) {
+    if (histRes != null) {
       return {
-        'statistics': res.statistics,
-        'history': res.history,
-        'employee': res.employee,
-        'period': res.period,
-        'schedule': res.schedule,
+        'statistics': histRes.statistics,
+        'history': histRes.history,
+        'employee': histRes.employee,
+        'period': histRes.period,
+        'schedule': histRes.schedule,
       };
     }
     return null;

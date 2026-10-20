@@ -31,6 +31,7 @@ class MonthlyTargetItem {
   final String? expectedResults;
   final String status; // 'not_started', 'in_progress', 'completed', etc.
   final String priority; // 'high', 'normal', 'low', 'urgent'
+  final String? approvalStatus; // 'approved', 'pending', 'rejected', dll.
   final String? picName;
   final String? startDate;
   final String? deadline;
@@ -45,6 +46,7 @@ class MonthlyTargetItem {
     this.expectedResults,
     required this.status,
     required this.priority,
+    this.approvalStatus,
     this.picName,
     this.startDate,
     this.deadline,
@@ -71,6 +73,7 @@ class MonthlyTargetItem {
           json['execution_status']?.toString() ??
           'not_started',
       priority: json['priority']?.toString() ?? 'normal',
+      approvalStatus: json['approval_status']?.toString(),
       picName: json['pic_name']?.toString(),
       startDate: json['start_date']?.toString(),
       deadline: json['deadline']?.toString(),
@@ -337,11 +340,15 @@ class WeeklyReviewItem {
 class WeeklyReviewPlanGroup {
   final int id;
   final String title;
+  final String? ownerName; // 4.7: owner_name dari respons weekly-review
+  final String? executionStatus; // 4.7: execution_status dari respons weekly-review
   final List<WeeklyReviewItem> items;
 
   WeeklyReviewPlanGroup({
     required this.id,
     required this.title,
+    this.ownerName,
+    this.executionStatus,
     required this.items,
   });
 
@@ -350,6 +357,8 @@ class WeeklyReviewPlanGroup {
     return WeeklyReviewPlanGroup(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       title: json['title']?.toString() ?? '',
+      ownerName: json['owner_name']?.toString(),
+      executionStatus: json['execution_status']?.toString(),
       items: rawItems.map((e) => WeeklyReviewItem.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }

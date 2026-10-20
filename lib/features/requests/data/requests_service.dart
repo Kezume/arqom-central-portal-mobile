@@ -486,7 +486,7 @@ class RequestsService {
     }
   }
 
-  /// 5.7 Batalkan Pengajuan
+  /// 5.8 Batalkan Pengajuan
   /// DELETE /api/requests/{id}
   static Future<RequestApiResponse<void>> cancelRequest(int id) async {
     try {
@@ -516,7 +516,7 @@ class RequestsService {
     }
   }
 
-  /// 5.8 Daftar Pengajuan yang Perlu Disetujui (Inbox Approval Atasan)
+  /// 5.9 Daftar Pengajuan yang Perlu Disetujui (Inbox Approval Atasan)
   /// GET /api/requests/approvals
   static Future<RequestApiResponse<List<RequestItem>>> getApprovals() async {
     try {
@@ -551,7 +551,7 @@ class RequestsService {
     }
   }
 
-  /// 5.9 Setujui Pengajuan (Approve by Manager)
+  /// 5.10 Setujui Pengajuan (Approve by Manager)
   /// POST /api/requests/{id}/approve
   static Future<RequestApiResponse<void>> approveRequest(
     int id, {
@@ -588,7 +588,7 @@ class RequestsService {
     }
   }
 
-  /// 5.10 Tolak Pengajuan (Reject by Manager)
+  /// 5.11 Tolak Pengajuan (Reject by Manager)
   /// POST /api/requests/{id}/reject
   static Future<RequestApiResponse<void>> rejectRequest(
     int id, {

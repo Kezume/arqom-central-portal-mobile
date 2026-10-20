@@ -108,6 +108,17 @@ class _HomeScreenState extends State<HomeScreen> {
             if (rawAct is List<Activity>) {
               _activities = rawAct;
             }
+            // 2.4: Parsing agendas dari dashboard (maks 5 agenda mendatang, difilter per user).
+            // Jika dashboard mengembalikan agendas, gunakan langsung sehingga tidak perlu
+            // request terpisah ke /api/agendas. Data agendas sudah difilter per akun di server,
+            // jangan gabungkan dengan cache lintas akun.
+            final rawAgendas = response['agendas'];
+            if (rawAgendas is List && rawAgendas.isNotEmpty) {
+              _companyAgendas = rawAgendas
+                  .whereType<Map<String, dynamic>>()
+                  .map((e) => AgendaItem.fromJson(e))
+                  .toList();
+            }
           }
           _isLoadingDashboard = false;
         });
