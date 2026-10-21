@@ -76,15 +76,42 @@ class AttendanceApprovedRequest {
     }
     return AttendanceApprovedRequest(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? ''),
-      requestNumber: json['request_number']?.toString(),
-      requestType: json['request_type']?.toString(),
-      typeLabel: json['type_label']?.toString(),
-      description: json['description']?.toString(),
-      startDate: json['start_date']?.toString(),
-      endDate: json['end_date']?.toString(),
-      location: json['location']?.toString(),
-      approvedAt: json['approved_at']?.toString(),
+      requestNumber: json['request_number']?.toString() ?? json['nomor_pengajuan']?.toString(),
+      requestType: json['request_type']?.toString() ?? json['type']?.toString(),
+      typeLabel: json['type_label']?.toString() ?? json['jenis']?.toString(),
+      description: json['description']?.toString() ?? json['keterangan']?.toString() ?? json['alasan']?.toString(),
+      startDate: json['start_date']?.toString() ?? json['tanggal_mulai']?.toString(),
+      endDate: json['end_date']?.toString() ?? json['tanggal_selesai']?.toString(),
+      location: json['location']?.toString() ?? json['lokasi']?.toString(),
+      approvedAt: json['approved_at']?.toString() ?? json['disetujui_pada']?.toString(),
     );
+  }
+
+  String get displayTitle {
+    if (typeLabel != null && typeLabel!.trim().isNotEmpty) return typeLabel!.trim();
+    if (requestType != null && requestType!.trim().isNotEmpty) {
+      final t = requestType!.trim().toLowerCase();
+      if (t == 'cuti') return 'Cuti Tahunan';
+      if (t == 'izin') return 'Izin';
+      if (t == 'sakit') return 'Sakit';
+      if (t == 'perjalanan_dinas') return 'Perjalanan Dinas';
+      if (t == 'tugas_lapangan') return 'Tugas Lapangan';
+      if (t == 'lembur') return 'Kerja Lembur';
+      return requestType!;
+    }
+    return 'Pengajuan Disetujui';
+  }
+
+  String get formattedPeriod {
+    final start = startDate?.trim();
+    final end = endDate?.trim();
+    if ((start == null || start.isEmpty) && (end == null || end.isEmpty)) {
+      return '';
+    }
+    if (start != null && (end == null || end.isEmpty || start == end)) {
+      return start;
+    }
+    return '$start s/d $end';
   }
 }
 

@@ -4,7 +4,7 @@ Panduan integrasi REST API Central Portal untuk pengembang aplikasi mobile (**Fl
 
 **Terakhir diperbarui:** 20 Oktober 2026
 
-**Perubahan:** penyesuaian kontrak login, penegasan penghentian absensi berbasis selfie/lokasi, penambahan endpoint ringkasan absensi, aturan kesetaraan modul Kinerja dengan web, serta dokumentasi SOP/Dokumen.
+**Perubahan:** penyesuaian kontrak login, penegasan penghentian absensi berbasis selfie/lokasi, penambahan endpoint ringkasan absensi, implementasi penuh API Daily Task/Logbook Harian, aturan kesetaraan modul Kinerja dengan web, serta dokumentasi SOP/Dokumen.
 
 **Acuan utama implementasi mobile:** file Markdown ini (`MOBILE_API_DOCUMENTATION.md`). Spesifikasi OpenAPI/YAML bersifat pelengkap teknis dan harus mengikuti keputusan bisnis dalam dokumen ini.
 
@@ -408,7 +408,8 @@ Field `approved_request` selalu `null` jika status tidak berasal dari pengajuan.
 Alternatif langsung untuk mengambil riwayat absensi seorang karyawan berdasarkan ID-nya:
 
 * **Endpoint**: `GET /api/attendance/employee/{employee_id}`
-* **Query Parameters (Opsional)**: `?month=10&year=2026&status=Hadir`
+* **Query Parameters (Opsional)**: sama dengan endpoint riwayat, kecuali `employee_id` sudah berada pada path: `month`, `year`, `status`, `order`, `page`, dan `per_page`.
+* **Contoh URL**: `/api/attendance/employee/46?month=10&year=2026&status=Hadir&order=desc`
 * **Respon Sukses (200 OK)**: Struktur respon sama persis dengan `GET /api/attendance/history`.
 
 ---
@@ -550,7 +551,9 @@ Alias untuk mengambil data riwayat, kalender kerja, dan statistik bulanan dalam 
 ### 3.7 Export Rekapan Absensi ke CSV
 Mengunduh rekapan absensi bulanan karyawan dalam format CSV (Excel).
 
-* **Endpoint**: `GET /api/attendance/export?month=10&year=2026` *(opsional: `&employee_id=46`)*
+* **Endpoint**: `GET /api/attendance/export`
+* **Query Params (Opsional)**: `month`, `year`, dan `employee_id` (hanya jika pengguna memiliki hak akses).
+* **Contoh**: `GET /api/attendance/export?month=10&year=2026&employee_id=46`
 * **Respon**: Berkas unduhan CSV berheader `Tanggal, Hari, Status, Jam Masuk, Jam Pulang, Sumber Presensi, Keterlambatan, Menit Telat, Catatan`.
 
 ---
@@ -589,11 +592,14 @@ Mobile harus memakai aturan bisnis dan sumber data yang sama dengan halaman web.
 | :--- | :--- | :--- |
 | Baca Target Bulanan | Siap | Menggunakan data target yang sama dengan web. |
 | Tambah/ubah Target Bulanan | Belum boleh diaktifkan di production | Backend API perlu menyamakan validasi kepemilikan parent dan rentang tanggal dengan web. |
+| Hapus Target Bulanan | Siap | Soft-delete target, turunannya, dan proyeksi Weekly Plan; hanya pemilik/admin. |
 | Baca Weekly Plan | Siap | Menggunakan rencana mingguan yang sama dengan web. |
 | Tambah/ubah Weekly Plan | Belum boleh diaktifkan di production | Backend API perlu menyinkronkan Daily Logbook, perpindahan pekan, subtask, dan perlindungan item yang bersumber dari Monthly Target. |
+| Hapus item Weekly Plan mandiri | Siap | Item sumber Target Bulanan/Daily Task dan plan terkunci ditolak. |
+| Daily Task / Logbook Harian | Siap | Daftar, detail, tambah, ubah, status, carry forward, dan hapus memakai data yang sama dengan web. |
 | Weekly Review | Siap | Validasi dan perhitungan progres telah mengikuti alur web. |
 
-Scope versi ini hanya mencakup tiga menu di atas. Dashboard Kinerja, OKR, KPI, Monthly Planning, Work Program, Daily Logbook/Kanban, laporan mingguan/bulanan, dan workflow penguncian yang tersedia di web belum menjadi kontrak API mobile dalam dokumen ini.
+Scope versi ini mencakup tiga menu di atas serta alur utama Daily Task/Logbook Harian. Dashboard Kinerja, OKR, KPI, Monthly Planning, Work Program, pengelolaan kolom Kanban, laporan mingguan/bulanan, dan workflow penguncian yang tersedia di web belum menjadi kontrak API mobile dalam dokumen ini.
 
 ---
 
@@ -605,6 +611,7 @@ Mengambil target bulanan bertingkat (`Main Target` ➔ `Weekly Target` ➔ `Dail
 * **Endpoint**: `GET /api/performance/monthly-targets`
 * **Query Params (Opsional)**:
   - `year`: `2026`
+  - `month`: `2026-10` *(format `YYYY-MM`; dipakai untuk menentukan `current_period` ketika `period` tidak dikirim)*
   - `period`: `Oktober 2026`
 * **Respon Sukses (200 OK)**:
   ```json
@@ -701,7 +708,7 @@ Aturan yang wajib sama dengan web sebelum fitur tulis diaktifkan:
   ```
 
 #### 4.3 Update Target Bulanan
-* **Endpoint**: `PATCH /api/performance/monthly-targets/{id}`
+* **Endpoint**: `PATCH /api/performance/monthly-targets/{target}`
 * **Request Body** *(hanya kirim field yang ingin diubah)*:
   ```json
   {
@@ -709,6 +716,14 @@ Aturan yang wajib sama dengan web sebelum fitur tulis diaktifkan:
     "deadline": "2026-10-25"
   }
   ```
+
+#### 4.3a Hapus Target Bulanan
+
+* **Endpoint**: `DELETE /api/performance/monthly-targets/{target}`
+* **Aturan**:
+  - Hanya pemilik target atau administrator yang dapat menghapus.
+  - Penghapusan menggunakan soft-delete.
+  - Seluruh sub-target dan proyeksi Weekly Plan terkait ikut dinonaktifkan agar data web dan mobile konsisten.
 
 ---
 
@@ -790,7 +805,7 @@ Mengubah informasi perencanaan aktivitas (judul, target tanggal, prioritas, kete
 
 > **Status integrasi**: Jangan aktifkan aksi ini di production sebelum backend menyinkronkan perubahan tanggal dengan Daily Logbook dan menolak perubahan field sumber untuk item yang berasal dari Monthly Target, sama seperti web.
 
-* **Endpoint**: `PATCH /api/performance/weekly-plan/items/{id}`
+* **Endpoint**: `PATCH /api/performance/weekly-plan/items/{item}`
 * **Request Body** *(opsional, kirim field yang ingin diubah)*:
   ```json
   {
@@ -814,6 +829,46 @@ Mengubah informasi perencanaan aktivitas (judul, target tanggal, prioritas, kete
     }
   }
   ```
+
+#### 4.6a Hapus Item Kinerja Mandiri
+
+* **Endpoint**: `DELETE /api/performance/weekly-plan/items/{item}`
+* **Aturan**:
+  - Hanya pemilik Weekly Plan atau administrator yang dapat menghapus.
+  - Plan yang terkunci tidak dapat diubah oleh pengguna biasa.
+  - Item dari Target Bulanan harus dihapus melalui `DELETE /api/performance/monthly-targets/{target}`.
+  - Item yang diproyeksikan dari Daily Task harus dihapus melalui endpoint Daily Task.
+
+#### 4.6b Daily Task / Logbook Harian
+
+Endpoint yang tersedia:
+
+- `GET /api/performance/daily-tasks?date=2026-10-20` — daftar per tanggal. Gunakan `from` dan `to` untuk rentang maksimal 93 hari; tersedia filter `status` dan `weekly_plan_item_id`.
+- `GET /api/performance/daily-tasks/{task}` — detail task.
+- `POST /api/performance/daily-tasks` — membuat task.
+- `PATCH /api/performance/daily-tasks/{task}` — mengubah task; `execution_status` wajib dikirim.
+- `PATCH /api/performance/daily-tasks/{task}/status` — mengubah status dengan body `{ "execution_status": "in_progress" }`.
+- `POST /api/performance/daily-tasks/{task}/carry-forward` — memindahkan task dengan body `{ "next_date": "2026-10-21" }` tanpa menghapus histori.
+- `DELETE /api/performance/daily-tasks/{task}` — soft-delete task.
+
+Request minimum untuk membuat task:
+
+```json
+{
+  "work_date": "2026-10-20",
+  "title": "Finalisasi endpoint mobile",
+  "priority": "high",
+  "execution_status": "not_started"
+}
+```
+
+Aturan:
+
+- Hanya pemilik task atau administrator yang dapat membaca atau mengubah task.
+- Jika `weekly_plan_item_id` kosong, server membuat proyeksi Weekly Plan pada pekan yang sesuai.
+- Weekly Plan yang sudah diajukan/dikunci menolak penambahan proyeksi mandiri.
+- ID hapus dapat berasal dari `daily_tasks[].id` atau `items[].source_daily_task_id` pada respons Weekly Plan.
+- Menghapus task terakhir yang membentuk item Weekly Plan khusus juga menonaktifkan proyeksi tersebut.
 
 ---
 
@@ -934,7 +989,8 @@ Mengirimkan pembaruan status dan progres untuk seluruh aktivitas dalam satu requ
   - Sistem di backend otomatis **menghitung ulang** persentase mingguan dan menyinkronkan status target bulanan.
   - Gunakan nilai pada `data.items` dari respons sebagai hasil akhir yang tersimpan di server.
 
-* **Endpoint**: `PATCH /api/performance/weekly-review` *(bisa juga menggunakan `POST`)*
+* **Endpoint utama**: `PATCH /api/performance/weekly-review`
+* **Alias metode**: `POST /api/performance/weekly-review` *(payload dan respons sama)*
 * **Request Body**:
   ```json
   {
@@ -1734,7 +1790,7 @@ Catatan field:
 
 ### 6.3 Detail Agenda
 
-* **Endpoint**: `GET /api/agendas/{id}`
+* **Endpoint**: `GET /api/agendas/{agenda}`
 * **Auth**: Wajib (`Bearer Token`)
 * **Respon Sukses (200 OK)**: Objek pada `data` menggunakan struktur field yang sama dengan item daftar agenda.
 * **Respon Tidak Ditemukan (404)**: Dikembalikan jika agenda tidak ada **atau** pengguna bukan bagian dari audiens. API sengaja tidak membedakan kedua kondisi tersebut untuk mencegah kebocoran informasi.
@@ -1795,7 +1851,7 @@ Contoh data FCM untuk reminder agenda (seluruh nilai FCM `data` dikirim sebagai 
 }
 ```
 
-Saat notifikasi diketuk, gunakan `agenda_id` untuk memanggil `GET /api/agendas/{id}`. Jika hasilnya `404`, tampilkan pesan bahwa agenda sudah tidak tersedia dan segarkan daftar lokal.
+Saat notifikasi diketuk, gunakan `agenda_id` untuk memanggil `GET /api/agendas/{agenda}`. Jika hasilnya `404`, tampilkan pesan bahwa agenda sudah tidak tersedia dan segarkan daftar lokal.
 
 ---
 
@@ -2235,7 +2291,8 @@ Gunakan prefix utama `/api/sop`. Prefix `/api/documents` tersedia sebagai alias 
 
 * **Lihat inline**: `GET /api/sop/{id}/view`
 * **Unduh**: `GET /api/sop/{id}/download`
-* **Alias**: endpoint yang sama tersedia dengan prefix `/api/documents`.
+* **Alias lihat inline**: `GET /api/documents/{id}/view`
+* **Alias unduh**: `GET /api/documents/{id}/download`
 * **Auth**: utamakan `Authorization: Bearer <ACCESS_TOKEN>` pada request file.
 * Untuk `document_type: "file"`, server mengembalikan file inline atau attachment sesuai endpoint.
 * Untuk `document_type: "url"`, server mengarahkan pengguna ke `external_url`.

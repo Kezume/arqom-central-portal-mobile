@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/artech_pull_to_refresh.dart';
 import '../../../core/widgets/live_clock_widget.dart';
+import '../../../core/widgets/artech_loading_widget.dart';
 import '../../auth/data/auth_service.dart';
 import '../../attendance/data/attendance_service.dart';
+import '../../attendance/data/models/attendance_models.dart';
 import '../data/dashboard_service.dart';
 import '../data/models/activity.dart';
 import '../data/models/announcement.dart';
@@ -32,114 +35,158 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const primary = Color(0xFF0037B0);
+  static const navy = Color(0xFF0F2D67);
+  static const ink = Color(0xFF0F172A);
+  static const muted = Color(0xFF64748B);
+  static const border = Color(0xFFE2E8F0);
+  static const background = Color(0xFFF8FAFC);
+
   Map<String, dynamic>? _userData;
   List<Announcement> _announcements = [];
   List<Activity> _activities = [];
   List<AgendaItem> _companyAgendas = [];
-  bool _isLoadingDashboard = true;
+
+  bool _loading = true;
   Future<Map<String, dynamic>?>? _todayFuture;
-
-  static String _extractStr(dynamic val, {String fallback = ''}) {
-    if (val == null) return fallback;
-    if (val is String) {
-      final s = val.trim();
-      return s.isEmpty ? fallback : s;
-    }
-    if (val is Map) {
-      if (val['recorded'] == false) return fallback;
-      final possible = val['time'] ??
-          val['jam'] ??
-          val['name'] ??
-          val['title'] ??
-          val['label'] ??
-          val['check_in'] ??
-          val['check_out'] ??
-          val['formatted_time'] ??
-          val['created_at'];
-      if (possible != null) {
-        final s = possible.toString().trim();
-        if (s.isNotEmpty) {
-          final parts = s.split(':');
-          if (parts.length >= 3 && parts[0].length == 2 && parts[1].length == 2) {
-            return '${parts[0]}:${parts[1]}';
-          }
-          return s;
-        }
-      }
-      return fallback;
-    }
-    final s = val.toString().trim();
-    return s.isEmpty ? fallback : s;
-  }
-
 
   @override
   void initState() {
     super.initState();
     _todayFuture = AttendanceService.getToday();
-    _loadUserData();
-    _loadDashboardData();
-    _loadCompanyAgendas();
+    _loadAll();
     NotificationsService.refreshUnreadCount();
   }
 
-  Future<void> _loadCompanyAgendas() async {
+  String _str(dynamic value, [String fallback = '']) {
+    if (value == null) return fallback;
+    if (value is Map) {
+      if (value['recorded'] == false) return fallback;
+      value =
+          value['time'] ??
+          value['jam'] ??
+          value['name'] ??
+          value['title'] ??
+          value['label'] ??
+          value['check_in'] ??
+          value['check_out'] ??
+          value['formatted_time'] ??
+          value['created_at'];
+    }
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return fallback;
+    final match = RegExp(r'^(\d{2}:\d{2}):\d{2}$').firstMatch(text);
+    return match?.group(1) ?? text;
+  }
+
+  TextStyle _font(
+    double size, {
+    Color color = ink,
+    FontWeight weight = FontWeight.w500,
+  }) {
+    return GoogleFonts.plusJakartaSans(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      height: 1.35,
+    );
+  }
+
+  BoxDecoration _decoration({
+    Color color = Colors.white,
+    double radius = 16,
+    bool shadow = false,
+  }) {
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: border),
+      boxShadow:
+          shadow
+              ? [
+                BoxShadow(
+                  color: navy.withValues(alpha: 0.08),
+                  blurRadius: 25,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+              : null,
+    );
+  }
+
+  Future<void> _loadAll() async {
+    await Future.wait([_loadUser(), _loadDashboard(), _loadAgenda()]);
+  }
+
+  Future<void> _loadUser() async {
     try {
-      final res = await AgendaService.getAgendas(perPage: 5);
-      if (mounted && res.success) {
-        setState(() {
-          _companyAgendas = res.items;
-        });
+      final result = await AuthService.getUserData();
+      if (mounted) {
+        setState(() => _userData = result);
       }
     } catch (_) {}
   }
 
-  Future<void> _loadDashboardData() async {
+  Future<void> _loadDashboard() async {
     try {
-      final response = await DashboardService.getDashboardData();
-      if (mounted) {
-        setState(() {
-          if (response['success'] == true) {
-            final rawAnn = response['announcements'];
-            if (rawAnn is List<Announcement>) {
-              _announcements = rawAnn;
-            }
-            final rawAct = response['activities'];
-            if (rawAct is List<Activity>) {
-              _activities = rawAct;
-            }
-            // 2.4: Parsing agendas dari dashboard (maks 5 agenda mendatang, difilter per user).
-            // Jika dashboard mengembalikan agendas, gunakan langsung sehingga tidak perlu
-            // request terpisah ke /api/agendas. Data agendas sudah difilter per akun di server,
-            // jangan gabungkan dengan cache lintas akun.
-            final rawAgendas = response['agendas'];
-            if (rawAgendas is List && rawAgendas.isNotEmpty) {
-              _companyAgendas = rawAgendas
-                  .whereType<Map<String, dynamic>>()
-                  .map((e) => AgendaItem.fromJson(e))
-                  .toList();
-            }
+      final result = await DashboardService.getDashboardData();
+
+      if (!mounted) return;
+
+      setState(() {
+        if (result['success'] == true) {
+          final announcements = result['announcements'];
+          final activities = result['activities'];
+          final agendas = result['agendas'];
+
+          if (announcements is List<Announcement>) {
+            _announcements = announcements;
           }
-          _isLoadingDashboard = false;
-        });
-      }
+
+          if (activities is List<Activity>) {
+            _activities = activities;
+          }
+
+          if (agendas is List && agendas.isNotEmpty) {
+            _companyAgendas =
+                agendas
+                    .whereType<Map<String, dynamic>>()
+                    .map(AgendaItem.fromJson)
+                    .toList();
+          }
+        }
+        _loading = false;
+      });
     } catch (_) {
       if (mounted) {
-        setState(() => _isLoadingDashboard = false);
+        setState(() => _loading = false);
       }
     }
   }
 
-  Future<void> _loadUserData() async {
-    final data = await AuthService.getUserData();
-    if (mounted) {
-      setState(() {
-        _userData = data;
-      });
-    }
+  Future<void> _loadAgenda() async {
+    try {
+      final result = await AgendaService.getAgendas(perPage: 5);
+      if (mounted && result.success) {
+        setState(() => _companyAgendas = result.items);
+      }
+    } catch (_) {}
   }
 
-  String _getGreeting() {
+  Future<void> _refresh() async {
+    setState(() {
+      _loading = true;
+      _todayFuture = AttendanceService.getToday();
+    });
+    await _loadAll();
+    NotificationsService.refreshUnreadCount();
+  }
+
+  void _open(Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  }
+
+  String _greeting() {
     final hour = DateTime.now().hour;
     if (hour < 11) return 'Selamat Pagi';
     if (hour < 15) return 'Selamat Siang';
@@ -147,8 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Selamat Malam';
   }
 
-  String _getFormattedDate() {
-    final now = DateTime.now();
+  String _date() {
+    final date = DateTime.now();
     const days = [
       'Senin',
       'Selasa',
@@ -172,77 +219,36 @@ class _HomeScreenState extends State<HomeScreen> {
       'November',
       'Desember',
     ];
-    final dayName = days[now.weekday - 1];
-    final monthName = months[now.month - 1];
-    return '$dayName, ${now.day} $monthName ${now.year}';
-  }
-
-  Future<void> _refreshData() async {
-    setState(() {
-      _isLoadingDashboard = true;
-      _todayFuture = AttendanceService.getToday();
-    });
-    await Future.wait([
-      _loadUserData(),
-      _loadDashboardData(),
-    ]);
+    return '${days[date.weekday - 1]}, '
+        '${date.day} ${months[date.month - 1]} '
+        '${date.year}';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: background,
       body: ArtechPullToRefresh(
-        onRefresh: _refreshData,
+        onRefresh: _refresh,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ─── HERO HEADER & OVERLAPPING ATTENDANCE CARD ───
-              Stack(
-                children: [
-                  // Gradient Header Backdrop (anchors top half of attendance card)
-                  Positioned.fill(
-                    bottom: 84,
-                    child: _buildHeaderBackdrop(context),
-                  ),
-
-                  // Header Foreground Content + Floating Attendance Card
-                  SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildTopBar(context),
-                          const SizedBox(height: 16),
-                          _buildProfileRow(context),
-                          const SizedBox(height: 20),
-                          _buildAttendanceCard(context),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // ─── DASHBOARD BODY CONTENT ───
+              _buildHeader(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildQuickAccess(context),
-                    const SizedBox(height: 24),
-                    _buildAgendaSection(context),
-                    const SizedBox(height: 20),
-                    _buildAnnouncementSection(context),
-                    const SizedBox(height: 20),
-                    _buildDailyQuote(context),
+                    _buildQuickAccess(),
+                    const SizedBox(height: 26),
+                    _buildAgendaSection(),
+                    const SizedBox(height: 22),
+                    _buildAnnouncements(),
+                    const SizedBox(height: 22),
+                    _buildQuote(),
                   ],
                 ),
               ),
@@ -253,272 +259,149 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── HEADER BACKDROP WITH SMOOTH GRADIENT & AMBIENT DEPTH ─────────────
-  Widget _buildHeaderBackdrop(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF091E47),
-            Color(0xFF0037B0),
-            Color(0xFF155DFC),
-          ],
-          stops: [0.0, 0.55, 1.0],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-      ),
-      child: Stack(
-        children: [
-          // Soft ambient circular glow 1 (top right)
-          Positioned(
-            top: -40,
-            right: -30,
-            child: Container(
-              width: 170,
-              height: 170,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.07),
+  // ================================================
+  // HEADER
+  // ================================================
+
+  Widget _buildHeader() {
+    return Stack(
+      children: [
+        Positioned.fill(
+          bottom: 75,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF091E47), primary, Color(0xFF155DFC)],
               ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
             ),
           ),
-          // Subtle warm accent glow (echoing the ARTECH orange branding)
-          Positioned(
-            bottom: -20,
-            left: -20,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFE961D).withValues(alpha: 0.09),
-              ),
+        ),
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Column(
+              children: [
+                _buildTopBar(),
+                const SizedBox(height: 22),
+                _buildProfile(),
+                const SizedBox(height: 22),
+                _buildAttendanceCard(),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  // ─── TOP BAR (BRANDING & NOTIFICATIONS) ────────────────────────────────
-  Widget _buildTopBar(BuildContext context) {
+  Widget _buildTopBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Frosted Glass Brand Capsule
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.22),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
                 'logo/artech_symbol.png',
                 height: 20,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.business, color: Colors.white, size: 20),
+                errorBuilder:
+                    (_, __, ___) => const Icon(
+                      Icons.business,
+                      color: Colors.white,
+                      size: 20,
+                    ),
               ),
-              const SizedBox(width: 8),
-              const Text(
+              const SizedBox(width: 9),
+              Text(
                 'ARQOM ONE',
-                style: TextStyle(
-                  color: Colors.white,
-                  letterSpacing: 1.6,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                ),
+                style: _font(12, color: Colors.white, weight: FontWeight.w800),
               ),
             ],
           ),
         ),
-
-        // Frosted Notification Icon Button
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.14),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.22),
-              width: 1,
-            ),
-          ),
-          child: ValueListenableBuilder<int>(
-            valueListenable: NotificationsService.unreadCountNotifier,
-            builder: (context, unreadCount, _) {
-              const iconWidget = Icon(
-                Icons.notifications_none_rounded,
-                color: Colors.white,
-                size: 21,
-              );
-
-              return IconButton(
-                padding: EdgeInsets.zero,
-                icon: unreadCount > 0
-                    ? const Badge(
-                        backgroundColor: Color(0xFFFF4848),
-                        smallSize: 8,
-                        child: iconWidget,
-                      )
-                    : iconWidget,
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                  );
-                  NotificationsService.refreshUnreadCount();
-                },
-              );
-            },
-          ),
+        ValueListenableBuilder<int>(
+          valueListenable: NotificationsService.unreadCountNotifier,
+          builder: (_, count, __) {
+            return IconButton(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                );
+                NotificationsService.refreshUnreadCount();
+              },
+              icon: Badge(
+                isLabelVisible: count > 0,
+                smallSize: 8,
+                child: const Icon(
+                  Icons.notifications_none_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
   }
 
-  // ─── PROFILE ROW (USER, ROLE & WORK STATUS) ───────────────────────────
-  Widget _buildProfileRow(BuildContext context) {
-    final rawName = _userData?['employee']?['name'] ?? _userData?['name'];
-    final name = _extractStr(rawName, fallback: 'Pengguna');
-    final firstName = name.split(' ').first;
-    final rawRole = _userData?['employee']?['position'] ??
-        _userData?['position'] ??
-        _userData?['role'];
-    final role = _extractStr(rawRole, fallback: 'Staff');
-    final rawPhoto = _userData?['profile_photo_url'] ??
-        _userData?['employee']?['profile_photo_url'];
-    final photoUrl = (rawPhoto is String && rawPhoto.isNotEmpty)
-        ? rawPhoto
-        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=0037b0&color=fff';
+  Widget _buildProfile() {
+    final employee = _userData?['employee'];
+
+    final name = _str(employee?['name'] ?? _userData?['name'], 'Pengguna');
+
+    final role = _str(
+      employee?['position'] ?? _userData?['position'] ?? _userData?['role'],
+      'Staff',
+    );
+
+    final photo = _str(
+      _userData?['profile_photo_url'] ?? employee?['profile_photo_url'],
+    );
+
+    final photoUrl =
+        photo.isNotEmpty
+            ? photo
+            : 'https://ui-avatars.com/api/'
+                '?name=${Uri.encodeComponent(name)}'
+                '&background=0037b0&color=fff';
 
     return Row(
       children: [
-        // Avatar with polished double border
-        Container(
-          padding: const EdgeInsets.all(2.5),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.45),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: CircleAvatar(
-            radius: 23,
-            backgroundImage: NetworkImage(photoUrl),
-            backgroundColor: Colors.white24,
-          ),
+        CircleAvatar(
+          radius: 26,
+          backgroundColor: Colors.white24,
+          backgroundImage: NetworkImage(photoUrl),
         ),
-        const SizedBox(width: 12),
-
-        // Greeting & Name
+        const SizedBox(width: 13),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text('${_greeting()},', style: _font(12, color: Colors.white70)),
               Text(
-                '${_getGreeting()},',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                firstName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  letterSpacing: 0.2,
-                ),
+                name.split(' ').first,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: _font(19, color: Colors.white, weight: FontWeight.w800),
               ),
-              const SizedBox(height: 2),
               Text(
                 role,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.72),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-
-        // Work Location Pill (WFO)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF00E676),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF00E676),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'WFO',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                  letterSpacing: 0.6,
-                ),
+                style: _font(11, color: Colors.white70),
               ),
             ],
           ),
@@ -527,128 +410,146 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── FLOATING ATTENDANCE CARD (GLASSMORPHIC & TACTILE) ────────────────
-  Widget _buildAttendanceCard(BuildContext context) {
+  // ================================================
+  // PRESENSI - TANPA KETERANGAN DUPLIKAT
+  // ================================================
+
+  Widget _buildAttendanceCard() {
     return FutureBuilder<Map<String, dynamic>?>(
       future: _todayFuture,
       builder: (context, snapshot) {
         final data = snapshot.data;
-        final String checkInTime = _extractStr(data?['check_in'], fallback: '--:--');
-        final String checkOutTime = _extractStr(data?['check_out'], fallback: '--:--');
-        final bool isCheckedIn = checkInTime != '--:--';
-        final bool isCheckedOut = checkOutTime != '--:--';
 
-        final String statusText;
-        final Color statusColor;
-        final Color statusBg;
-        final IconData statusIcon;
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            snapshot.data == null) {
+          return Container(
+            width: double.infinity,
+            height: 180,
+            decoration: _decoration(radius: 23, shadow: true),
+            child: const Center(
+              child: ArtechLoadingWidget(size: 48, showHalo: false),
+            ),
+          );
+        }
 
-        final rawStatus = data?['status']?.toString();
-        final rawBadge = data?['status_badge']?.toString().toLowerCase();
-        final approvedRequest = data?['approved_request'] is Map<String, dynamic>
-            ? data!['approved_request'] as Map<String, dynamic>
-            : null;
-        final bool isApprovedRequest = (data?['status_source']?.toString().toLowerCase() == 'approved_request') || approvedRequest != null;
+        final checkIn = _str(data?['check_in'], '--:--');
+        final checkOut = _str(data?['check_out'], '--:--');
 
-        if (rawStatus != null && rawStatus.isNotEmpty && rawStatus.toLowerCase() != 'belum presensi') {
-          statusText = rawStatus;
-          final sLower = rawStatus.toLowerCase();
-          if (sLower.contains('cuti')) {
-            statusColor = AppColors.primary;
-            statusBg = const Color(0xFFEFF6FF);
-            statusIcon = Icons.beach_access_rounded;
-          } else if (sLower.contains('izin')) {
-            statusColor = Colors.orange.shade800;
-            statusBg = const Color(0xFFFFF7ED);
-            statusIcon = Icons.event_busy_rounded;
-          } else if (sLower.contains('sakit')) {
-            statusColor = AppColors.error;
-            statusBg = const Color(0xFFFEF2F2);
-            statusIcon = Icons.medical_services_rounded;
-          } else if (sLower.contains('lembur')) {
-            statusColor = Colors.indigo;
-            statusBg = const Color(0xFFEEF2FF);
-            statusIcon = Icons.access_time_filled_rounded;
-          } else if (sLower.contains('dinas')) {
-            statusColor = AppColors.tertiary;
-            statusBg = const Color(0xFFF5F3FF);
-            statusIcon = Icons.flight_takeoff_rounded;
-          } else if (rawBadge == 'success' || sLower.contains('hadir') || sLower.contains('lengkap')) {
-            statusColor = const Color(0xFF16A34A);
-            statusBg = const Color(0xFFDCFCE7);
-            statusIcon = Icons.check_circle_rounded;
-          } else if (rawBadge == 'warning' || sLower.contains('lambat')) {
-            statusColor = const Color(0xFFD97706);
-            statusBg = const Color(0xFFFEF3C7);
-            statusIcon = Icons.access_time_filled_rounded;
-          } else if (rawBadge == 'error' || sLower.contains('tidak')) {
-            statusColor = const Color(0xFFDC2626);
-            statusBg = const Color(0xFFFEE2E2);
-            statusIcon = Icons.cancel_rounded;
-          } else {
-            statusColor = const Color(0xFF0D9488);
-            statusBg = const Color(0xFFCCFBF1);
-            statusIcon = Icons.verified_rounded;
-          }
-        } else if (isCheckedOut) {
-          statusText = 'Presensi Lengkap';
-          statusColor = const Color(0xFF0D9488);
-          statusBg = const Color(0xFFCCFBF1);
-          statusIcon = Icons.verified_rounded;
-        } else if (isCheckedIn) {
-          statusText = 'Sudah Presensi Masuk';
+        final hasIn = checkIn != '--:--';
+        final hasOut = checkOut != '--:--';
+
+        final requestRaw = data?['approved_request'];
+        final AttendanceApprovedRequest? request =
+            requestRaw is Map
+                ? AttendanceApprovedRequest.fromJson(requestRaw)
+                : null;
+
+        final isApproved =
+            request != null ||
+            data?['status_source']?.toString().toLowerCase() ==
+                'approved_request';
+
+        final rawStatus = _str(data?['status']);
+        final rawBadge = _str(data?['status_badge']).toLowerCase();
+
+        String status;
+
+        if (isApproved) {
+          status = request?.displayTitle ?? rawStatus;
+          status = status.trim().isEmpty ? 'Pengajuan Disetujui' : status;
+        } else if (rawStatus.isNotEmpty &&
+            rawStatus.toLowerCase() != 'belum presensi') {
+          status = rawStatus;
+        } else if (hasOut) {
+          status = 'Presensi Lengkap';
+        } else if (hasIn) {
+          status = 'Sudah Presensi Masuk';
+        } else {
+          status = 'Belum Presensi';
+        }
+
+        // Hapus awalan berulang dan ACC di judul.
+        status =
+            status
+                .replaceAll(RegExp(r'^pengajuan\s+', caseSensitive: false), '')
+                .replaceAll(RegExp(r'\s*\(ACC\)', caseSensitive: false), '')
+                .trim();
+
+        final lower = status.toLowerCase();
+
+        Color statusColor;
+        Color statusBg;
+        IconData statusIcon;
+
+        if (lower.contains('cuti')) {
+          statusColor = primary;
+          statusBg = const Color(0xFFEFF6FF);
+          statusIcon = Icons.beach_access_rounded;
+        } else if (lower.contains('izin')) {
+          statusColor = const Color(0xFFD97706);
+          statusBg = const Color(0xFFFFF7ED);
+          statusIcon = Icons.event_busy_rounded;
+        } else if (lower.contains('sakit')) {
+          statusColor = const Color(0xFFDC2626);
+          statusBg = const Color(0xFFFEF2F2);
+          statusIcon = Icons.medical_services_rounded;
+        } else if (lower.contains('dinas')) {
+          statusColor = const Color(0xFF7C3AED);
+          statusBg = const Color(0xFFF5F3FF);
+          statusIcon = Icons.flight_takeoff_rounded;
+        } else if (lower.contains('lembur')) {
+          statusColor = const Color(0xFF4F46E5);
+          statusBg = const Color(0xFFEEF2FF);
+          statusIcon = Icons.more_time_rounded;
+        } else if (hasOut ||
+            lower.contains('lengkap') ||
+            rawBadge == 'success' ||
+            lower.contains('hadir')) {
           statusColor = const Color(0xFF16A34A);
           statusBg = const Color(0xFFDCFCE7);
           statusIcon = Icons.check_circle_rounded;
+        } else if (hasIn) {
+          statusColor = const Color(0xFF16A34A);
+          statusBg = const Color(0xFFDCFCE7);
+          statusIcon = Icons.check_circle_outline_rounded;
+        } else if (rawBadge == 'error' || lower.contains('tidak hadir')) {
+          statusColor = const Color(0xFFDC2626);
+          statusBg = const Color(0xFFFEF2F2);
+          statusIcon = Icons.cancel_rounded;
         } else {
-          statusText = 'Belum Presensi';
           statusColor = const Color(0xFFD97706);
           statusBg = const Color(0xFFFEF3C7);
           statusIcon = Icons.pending_actions_rounded;
         }
 
-        final rawTarget = data?['schedule']?['check_in_target']?.toString();
-        final limitText = (rawTarget != null && rawTarget.length >= 5)
-            ? 'Batas ${rawTarget.substring(0, 5)} WIB'
-            : 'Batas 08:15 WIB';
-        final sourceLabel = data?['source_label']?.toString();
-        final isFingerSpot = (data?['source'] ?? '').toString().toLowerCase().contains('finger') ||
-            (sourceLabel ?? '').toLowerCase().contains('mesin');
+        final source = _str(data?['source']).toLowerCase();
+        final sourceLabel = _str(data?['source_label']).toLowerCase();
+
+        final isFingerSpot =
+            source.contains('finger') ||
+            sourceLabel.contains('finger') ||
+            sourceLabel.contains('mesin');
+
+        final schedule = data?['schedule'];
+        final target = schedule is Map ? _str(schedule['check_in_target']) : '';
+
+        final targetText =
+            target.length >= 5 ? 'Batas ${target.substring(0, 5)}' : null;
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: const Color(0xFFE2E8F0),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF0F2D67).withValues(alpha: 0.09),
-                blurRadius: 30,
-                offset: const Offset(0, 12),
-                spreadRadius: -4,
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+          padding: const EdgeInsets.all(18),
+          decoration: _decoration(radius: 24, shadow: true),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. Status row & Limit badge
+              // Status ditampilkan hanya satu kali.
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
+                  Flexible(
                     child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
                       decoration: BoxDecoration(
                         color: statusBg,
                         borderRadius: BorderRadius.circular(10),
@@ -656,319 +557,82 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(statusIcon, color: statusColor, size: 13),
-                          const SizedBox(width: 5),
+                          Icon(statusIcon, color: statusColor, size: 15),
+                          const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              statusText,
-                              style: TextStyle(
-                                color: statusColor,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                              status,
                               maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: _font(
+                                11,
+                                color: statusColor,
+                                weight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                          if (isApprovedRequest) ...[
-                            const SizedBox(width: 5),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.assignment_turned_in_rounded, size: 10, color: statusColor),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    'Pengajuan ACC',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ] else if (isFingerSpot) ...[
-                            const SizedBox(width: 5),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.fingerprint, size: 10, color: statusColor),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    'FingerSpot',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-
-                  // Limit Chip
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
+                  if (!isApproved && targetText != null) ...[
+                    const SizedBox(width: 8),
+                    const Spacer(),
+                    Text(
+                      targetText,
+                      style: _font(10, color: muted, weight: FontWeight.w600),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.schedule_rounded,
-                          size: 12,
-                          color: Color(0xFF64748B),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          limitText,
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF475569),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ],
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
 
-              // 2. Live Clock Display
               LiveClockWidget(
-                timeStyle: const TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F2D67),
-                  letterSpacing: -0.5,
-                ),
-                amPmStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
-                ),
+                timeStyle: _font(34, color: navy, weight: FontWeight.w800),
+                amPmStyle: _font(12, color: muted, weight: FontWeight.w600),
               ),
 
-              const SizedBox(height: 4),
+              const SizedBox(height: 5),
 
-              // Full Current Indonesian Date
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(
                     Icons.calendar_today_rounded,
                     size: 12,
-                    color: Color(0xFF64748B),
+                    color: muted,
                   ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _getFormattedDate(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
+                  const SizedBox(width: 6),
+                  Text(_date(), style: _font(11, color: muted)),
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
-              // 3. Check-in & Check-out Preview Strip
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
+              if (isApproved)
+                _buildApprovedDetail(request, statusColor, statusBg)
+              else
+                _buildAttendanceTimes(checkIn, checkOut, hasIn, hasOut),
+
+              if (!isApproved && isFingerSpot) ...[
+                const SizedBox(height: 11),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Check in
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: isCheckedIn
-                                  ? const Color(0xFFDCFCE7)
-                                  : const Color(0xFFF1F5F9),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.login_rounded,
-                              size: 14,
-                              color: isCheckedIn
-                                  ? const Color(0xFF16A34A)
-                                  : const Color(0xFF94A3B8),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Masuk',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF64748B),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                checkInTime,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: isCheckedIn
-                                      ? const Color(0xFF0F172A)
-                                      : const Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    const Icon(
+                      Icons.fingerprint_rounded,
+                      size: 14,
+                      color: muted,
                     ),
-
-                    Container(
-                      width: 1,
-                      height: 26,
-                      color: const Color(0xFFE2E8F0),
-                    ),
-
-                    // Check out
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: isCheckedOut
-                                    ? const Color(0xFFE0E7FF)
-                                    : const Color(0xFFF1F5F9),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.logout_rounded,
-                                size: 14,
-                                color: isCheckedOut
-                                    ? const Color(0xFF4F46E5)
-                                    : const Color(0xFF94A3B8),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Pulang',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Text(
-                                  checkOutTime,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: isCheckedOut
-                                        ? const Color(0xFF0F172A)
-                                        : const Color(0xFF94A3B8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Tercatat melalui FingerSpot',
+                      style: _font(10, color: muted),
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // 4. Info Mesin Absensi FingerSpot
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0037B0).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.fingerprint_rounded,
-                        size: 19,
-                        color: Color(0xFF0037B0),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Presensi Mesin FingerSpot Aktif',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E293B),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Presensi otomatis tercatat melalui mesin absensi (FingerSpot).',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ],
           ),
         );
@@ -976,80 +640,255 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── QUICK ACCESS (AKSES CEPAT) ──────────────────────────────────────
-  Widget _buildQuickAccess(BuildContext context) {
-    final items = [
-      _QuickItem(Icons.history_toggle_off, 'Kehadiran', () {
-        widget.onNavigateTab?.call(1);
-      }),
-      _QuickItem(Icons.event_available, 'Pengajuan', () {
-        widget.onNavigateTab?.call(3);
-      }),
-      _QuickItem(Icons.beach_access, 'Cuti', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const CutiTahunanScreen()),
-        );
-      }),
-      _QuickItem(Icons.assignment_turned_in, 'Izin', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const IzinScreen()),
-        );
-      }),
-      _QuickItem(Icons.sick, 'Sakit', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SakitScreen()),
-        );
-      }),
-      _QuickItem(Icons.flight_takeoff, 'Dinas Luar', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const DinasLuarScreen()),
-        );
-      }),
-      _QuickItem(Icons.more_time, 'Lembur', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const KerjaLemburScreen()),
-        );
-      }),
-      _QuickItem(Icons.auto_stories, 'Al-Ma\'tsurat', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AlmatsuratScreen()),
-        );
-      }),
-      _QuickItem(Icons.menu_book_rounded, 'SOP & Dokumen', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SopListScreen()),
-        );
-      }),
-      _QuickItem(Icons.event_note_rounded, 'Agenda', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AgendaListScreen()),
-        );
-      }),
+  // ================================================
+  // INFORMASI PENGAJUAN ACC
+  // ================================================
+
+  Widget _buildApprovedDetail(
+    AttendanceApprovedRequest? request,
+    Color color,
+    Color bg,
+  ) {
+    final number = request?.requestNumber?.trim() ?? '';
+    final description = request?.description?.trim() ?? '';
+    final period = request?.formattedPeriod ?? '';
+
+    final startDate = request?.startDate;
+    final endDate = request?.endDate;
+
+    final periodText =
+        period.isEmpty
+            ? ''
+            : startDate == endDate
+            ? 'Tanggal: $startDate'
+            : 'Periode: $period';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (number.isNotEmpty)
+            _infoRow(Icons.receipt_long_rounded, 'No. $number', color),
+
+          if (periodText.isNotEmpty) ...[
+            if (number.isNotEmpty) const SizedBox(height: 10),
+            _infoRow(Icons.date_range_rounded, periodText, color),
+          ],
+
+          if (description.isNotEmpty) ...[
+            if (number.isNotEmpty || periodText.isNotEmpty)
+              const SizedBox(height: 10),
+            _infoRow(Icons.notes_rounded, description, color, textColor: muted),
+          ],
+
+          if (number.isNotEmpty ||
+              periodText.isNotEmpty ||
+              description.isNotEmpty)
+            const SizedBox(height: 12),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: _infoRow(
+              Icons.check_circle_outline_rounded,
+              'Tidak perlu scan presensi',
+              color,
+              bold: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(
+    IconData icon,
+    String text,
+    Color accent, {
+    Color textColor = ink,
+    bool bold = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 15, color: accent),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: _font(
+              11,
+              color: textColor,
+              weight: bold ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ================================================
+  // JAM MASUK DAN PULANG
+  // ================================================
+
+  Widget _buildAttendanceTimes(
+    String checkIn,
+    String checkOut,
+    bool hasIn,
+    bool hasOut,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _timeItem(
+              Icons.login_rounded,
+              'Masuk',
+              checkIn,
+              hasIn,
+              const Color(0xFF16A34A),
+            ),
+          ),
+          Container(height: 32, width: 1, color: border),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _timeItem(
+              Icons.logout_rounded,
+              'Pulang',
+              checkOut,
+              hasOut,
+              const Color(0xFF4F46E5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _timeItem(
+    IconData icon,
+    String label,
+    String time,
+    bool recorded,
+    Color accent,
+  ) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color:
+                recorded
+                    ? accent.withValues(alpha: 0.1)
+                    : border.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 17, color: recorded ? accent : muted),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: _font(10, color: muted)),
+              const SizedBox(height: 2),
+              Text(
+                time,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _font(
+                  13.5,
+                  color: recorded ? ink : muted,
+                  weight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ================================================
+  // AKSES CEPAT
+  // ================================================
+
+  Widget _buildQuickAccess() {
+    final items = <_QuickItem>[
+      _QuickItem(
+        Icons.history_toggle_off_rounded,
+        'Kehadiran',
+        () => widget.onNavigateTab?.call(1),
+      ),
+      _QuickItem(
+        Icons.event_available_rounded,
+        'Pengajuan',
+        () => widget.onNavigateTab?.call(3),
+      ),
+      _QuickItem(
+        Icons.beach_access_rounded,
+        'Cuti',
+        () => _open(const CutiTahunanScreen()),
+      ),
+      _QuickItem(
+        Icons.assignment_turned_in_rounded,
+        'Izin',
+        () => _open(const IzinScreen()),
+      ),
+      _QuickItem(
+        Icons.medical_services_outlined,
+        'Sakit',
+        () => _open(const SakitScreen()),
+      ),
+      _QuickItem(
+        Icons.flight_takeoff_rounded,
+        'Dinas Luar',
+        () => _open(const DinasLuarScreen()),
+      ),
+      _QuickItem(
+        Icons.more_time_rounded,
+        'Lembur',
+        () => _open(const KerjaLemburScreen()),
+      ),
+      _QuickItem(
+        Icons.auto_stories_rounded,
+        "Al-Ma'tsurat",
+        () => _open(const AlmatsuratScreen()),
+      ),
+      _QuickItem(
+        Icons.menu_book_rounded,
+        'SOP',
+        () => _open(const SopListScreen()),
+      ),
+      _QuickItem(
+        Icons.event_note_rounded,
+        'Agenda',
+        () => _open(const AgendaListScreen()),
+      ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Akses Cepat',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '${items.length} Layanan',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    fontSize: 10,
-                  ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
+        _sectionTitle('Akses Cepat'),
+        const SizedBox(height: 13),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -1057,11 +896,11 @@ class _HomeScreenState extends State<HomeScreen> {
           itemCount: items.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 4,
-            mainAxisSpacing: 10,
+            mainAxisSpacing: 12,
             crossAxisSpacing: 8,
-            mainAxisExtent: 78,
+            mainAxisExtent: 83,
           ),
-          itemBuilder: (context, index) {
+          itemBuilder: (_, index) {
             final item = items[index];
             return InkWell(
               onTap: item.onTap,
@@ -1070,24 +909,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryContainer.withValues(alpha: 0.16),
+                      color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(item.icon, color: AppColors.primary, size: 20),
+                    child: Icon(item.icon, color: primary, size: 21),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 7),
                   Text(
                     item.label,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10.5,
-                        ),
-                    textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: _font(10, weight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -1098,179 +934,128 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── AGENDA SECTION ──────────────────────────────────────────────────
-  Widget _buildAgendaSection(BuildContext context) {
-    if (_isLoadingDashboard && _companyAgendas.isEmpty) {
-      return _buildShimmerPlaceholder(context, 'Agenda');
+  // ================================================
+  // AGENDA
+  // ================================================
+
+  Widget _buildAgendaSection() {
+    if (_loading && _companyAgendas.isEmpty && _activities.isEmpty) {
+      return _loadingCard('Agenda');
     }
 
-    // Jika ada data agenda perusahaan dari API Menu 6
     if (_companyAgendas.isNotEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(
-            context,
+          _sectionTitle(
             'Agenda Perusahaan',
-            '${_companyAgendas.length} agenda terdaftar',
-            actionLabel: 'Lihat Semua',
-            onTapAction: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AgendaListScreen()),
-              );
-            },
+            action: 'Lihat Semua',
+            onTap: () => _open(const AgendaListScreen()),
           ),
-          const SizedBox(height: 10),
-          ..._companyAgendas.take(3).map((item) => _buildCompanyAgendaItem(context, item)),
+          const SizedBox(height: 12),
+          ..._companyAgendas.take(3).map(_companyAgendaItem),
         ],
       );
     }
 
-    if (_activities.isEmpty) return const SizedBox.shrink();
+    if (_activities.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(
-          context,
+        _sectionTitle(
           'Agenda Mendatang',
-          '${_activities.length} kegiatan terdaftar',
-          actionLabel: 'Lihat Semua',
-          onTapAction: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AgendaListScreen()),
-            );
-          },
+          action: 'Lihat Semua',
+          onTap: () => _open(const AgendaListScreen()),
         ),
-        const SizedBox(height: 10),
-        ..._activities.take(3).map((a) => _buildAgendaItem(context, a)),
+        const SizedBox(height: 12),
+        ..._activities.take(3).map(_activityItem),
       ],
     );
   }
 
-  Widget _buildCompanyAgendaItem(BuildContext context, AgendaItem item) {
-    final typeColor = item.typeColor;
-    final typeIcon = item.typeIcon;
-
+  Widget _companyAgendaItem(AgendaItem item) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AgendaDetailScreen(
-                  agendaId: item.id,
-                  initialItem: item,
+      padding: const EdgeInsets.only(bottom: 9),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap:
+            () =>
+                _open(AgendaDetailScreen(agendaId: item.id, initialItem: item)),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: _decoration(),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: item.typeColor,
+                  borderRadius: BorderRadius.circular(5),
                 ),
               ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(item.typeIcon, size: 12, color: item.typeColor),
+                        const SizedBox(width: 5),
+                        Text(
+                          item.type,
+                          style: _font(
+                            10,
+                            color: item.typeColor,
+                            weight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _font(12.5, weight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item.formattedDateRange} · '
+                      '${item.formattedTimeRange}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _font(10, color: muted),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: typeColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(typeIcon, size: 11, color: typeColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            item.type,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              color: typeColor,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              '• ${item.audienceLabel}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 9.5,
-                                color: const Color(0xFF64748B),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        item.title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelLarge
-                            ?.copyWith(fontWeight: FontWeight.w700, fontSize: 13),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${item.formattedDateRange} · ${item.formattedTimeRange}',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                              fontSize: 10,
-                            ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF94A3B8)),
-              ],
-            ),
+              const Icon(Icons.chevron_right_rounded, size: 20, color: muted),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildAgendaItem(BuildContext context, Activity activity) {
+  Widget _activityItem(Activity activity) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
+        padding: const EdgeInsets.all(14),
+        decoration: _decoration(),
         child: Row(
           children: [
             Container(
               width: 4,
-              height: 36,
+              height: 37,
               decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(2),
+                color: primary,
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
             const SizedBox(width: 12),
@@ -1280,43 +1065,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     activity.title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelLarge
-                        ?.copyWith(fontWeight: FontWeight.w600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: _font(12.5, weight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 5),
                   Text(
                     '${activity.location} · ${activity.pic}',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          fontSize: 10,
-                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: _font(10, color: muted),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primaryContainer.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                activity.activityDate.length >= 10
-                    ? activity.activityDate.substring(5, 10).replaceAll('-', '/')
-                    : activity.activityDate,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                    ),
-              ),
+            Text(
+              activity.activityDate.length >= 10
+                  ? activity.activityDate.substring(5, 10).replaceAll('-', '/')
+                  : activity.activityDate,
+              style: _font(10, color: primary, weight: FontWeight.w700),
             ),
           ],
         ),
@@ -1324,52 +1092,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── ANNOUNCEMENT SECTION ────────────────────────────────────────────
-  Widget _buildAnnouncementSection(BuildContext context) {
-    if (_isLoadingDashboard) return const SizedBox.shrink();
-    if (_announcements.isEmpty) return const SizedBox.shrink();
+  // ================================================
+  // PENGUMUMAN
+  // ================================================
+
+  Widget _buildAnnouncements() {
+    if (_loading || _announcements.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(context, 'Pengumuman', 'Informasi Internal'),
-        const SizedBox(height: 10),
-        ..._announcements.take(3).map((a) => _buildAnnouncementItem(context, a)),
+        _sectionTitle('Pengumuman'),
+        const SizedBox(height: 12),
+        ..._announcements.take(3).map(_announcementItem),
       ],
     );
   }
 
-  Widget _buildAnnouncementItem(
-      BuildContext context, Announcement announcement) {
-    final isUrgent = announcement.priority.toLowerCase() == 'urgent';
+  Widget _announcementItem(Announcement announcement) {
+    final urgent = announcement.priority.toLowerCase() == 'urgent';
+    final accent = urgent ? const Color(0xFFDC2626) : primary;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isUrgent
-                ? AppColors.error.withValues(alpha: 0.3)
-                : AppColors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
+        decoration: _decoration(),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 37,
+              height: 37,
               decoration: BoxDecoration(
-                color: isUrgent
-                    ? AppColors.errorContainer.withValues(alpha: 0.5)
-                    : AppColors.primaryContainer.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(10),
+                color: accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(11),
               ),
               child: Icon(
-                isUrgent ? Icons.warning_amber_rounded : Icons.campaign_outlined,
-                size: 18,
-                color: isUrgent ? AppColors.error : AppColors.primary,
+                urgent ? Icons.warning_amber_rounded : Icons.campaign_outlined,
+                color: accent,
+                size: 19,
               ),
             ),
             const SizedBox(width: 12),
@@ -1379,22 +1143,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     announcement.title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelLarge
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    announcement.description,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          fontSize: 10,
-                        ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: _font(12.5, weight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    announcement.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: _font(10.5, color: muted),
                   ),
                 ],
               ),
@@ -1405,80 +1163,72 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── DAILY QUOTE ─────────────────────────────────────────────────────
-  static const List<Map<String, String>> _dailyQuotes = [
-    {
-      'text': 'Maka sesungguhnya bersama kesulitan ada kemudahan.',
-      'source': 'QS. Al-Insyirah: 5'
-    },
-    {
-      'text':
-          'Dan bersabarlah, karena sesungguhnya Allah tidak menyia-nyiakan pahala orang yang berbuat kebaikan.',
-      'source': 'QS. Hud: 115'
-    },
-    {
-      'text':
-          'Allah tidak membebani seseorang melainkan sesuai dengan kesanggupannya.',
-      'source': 'QS. Al-Baqarah: 286'
-    },
-    {
-      'text': 'Boleh jadi kamu membenci sesuatu, padahal ia amat baik bagimu.',
-      'source': 'QS. Al-Baqarah: 216'
-    },
-    {
-      'text': 'Sesungguhnya Allah beserta orang-orang yang sabar.',
-      'source': 'QS. Al-Baqarah: 153'
-    },
-    {
-      'text': 'Maka nikmat Tuhan kamu yang manakah yang kamu dustakan?',
-      'source': 'QS. Ar-Rahman: 13'
-    },
-    {
-      'text':
-          'Barangsiapa bertakwa kepada Allah niscaya Dia akan membukakan jalan keluar baginya.',
-      'source': 'QS. At-Talaq: 2'
-    },
+  // ================================================
+  // KUTIPAN HARIAN
+  // ================================================
+
+  static const _quotes = [
+    [
+      'Maka sesungguhnya bersama kesulitan ada kemudahan.',
+      'QS. Al-Insyirah: 5',
+    ],
+    [
+      'Dan bersabarlah, karena sesungguhnya Allah tidak menyia-nyiakan pahala orang yang berbuat kebaikan.',
+      'QS. Hud: 115',
+    ],
+    [
+      'Allah tidak membebani seseorang melainkan sesuai dengan kesanggupannya.',
+      'QS. Al-Baqarah: 286',
+    ],
+    [
+      'Boleh jadi kamu membenci sesuatu, padahal ia amat baik bagimu.',
+      'QS. Al-Baqarah: 216',
+    ],
+    [
+      'Sesungguhnya Allah beserta orang-orang yang sabar.',
+      'QS. Al-Baqarah: 153',
+    ],
+    [
+      'Maka nikmat Tuhan kamu yang manakah yang kamu dustakan?',
+      'QS. Ar-Rahman: 13',
+    ],
+    [
+      'Barangsiapa bertakwa kepada Allah niscaya Dia akan membukakan jalan keluar baginya.',
+      'QS. At-Talaq: 2',
+    ],
   ];
 
-  Widget _buildDailyQuote(BuildContext context) {
-    final int dayOfYear =
-        DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
-    final quote = _dailyQuotes[dayOfYear % _dailyQuotes.length];
+  Widget _buildQuote() {
+    final now = DateTime.now();
+    final day = now.difference(DateTime(now.year, 1, 1)).inDays;
+    final quote = _quotes[day % _quotes.length];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: const Color(0xFFEFF4FB),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.format_quote,
-            color: AppColors.primary.withValues(alpha: 0.3),
-            size: 28,
-          ),
+          const Icon(Icons.format_quote_rounded, color: primary, size: 26),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  quote['text']!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: AppColors.onSurfaceVariant,
-                        height: 1.4,
-                      ),
+                  quote[0],
+                  style: _font(
+                    11,
+                    color: muted,
+                  ).copyWith(fontStyle: FontStyle.italic, height: 1.6),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 7),
                 Text(
-                  '— ${quote['source']}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.outline,
-                        fontSize: 10,
-                      ),
+                  '— ${quote[1]}',
+                  style: _font(10, color: primary, weight: FontWeight.w700),
                 ),
               ],
             ),
@@ -1488,76 +1238,54 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── SHARED HELPERS ──────────────────────────────────────────────────
-  Widget _buildSectionHeader(
-    BuildContext context,
-    String title,
-    String subtitle, {
-    VoidCallback? onTapAction,
-    String? actionLabel,
-  }) {
+  // ================================================
+  // KOMPONEN UMUM
+  // ================================================
+
+  Widget _sectionTitle(String title, {String? action, VoidCallback? onTap}) {
     return Row(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                      fontSize: 10,
-                    ),
-              ),
-            ],
-          ),
-        ),
-        if (onTapAction != null && actionLabel != null)
-          GestureDetector(
-            onTap: onTapAction,
-            child: Text(
-              actionLabel,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+        Expanded(child: Text(title, style: _font(15, weight: FontWeight.w800))),
+        if (action != null && onTap != null)
+          InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(5),
+              child: Row(
+                children: [
+                  Text(
+                    action,
+                    style: _font(11, color: primary, weight: FontWeight.w700),
                   ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 10,
+                    color: primary,
+                  ),
+                ],
+              ),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildShimmerPlaceholder(BuildContext context, String label) {
+  Widget _loadingCard(String label) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      height: 75,
+      decoration: _decoration(),
       child: Center(
-        child: Text(
-          'Memuat $label...',
-          style: Theme.of(context)
-              .textTheme
-              .labelSmall
-              ?.copyWith(color: AppColors.onSurfaceVariant),
-        ),
+        child: Text('Memuat $label...', style: _font(11, color: muted)),
       ),
     );
   }
 }
 
-// Simple data class for quick access items
 class _QuickItem {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
   const _QuickItem(this.icon, this.label, this.onTap);
 }

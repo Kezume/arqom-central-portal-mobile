@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path_provider/path_provider.dart';
@@ -92,8 +93,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void _prevCalendarMonth() {
     setState(() {
       _selectedCalendarMonth = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month - 1, 1);
-      final daysInMonth = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month + 1, 0).day;
-      _selectedCalendarDay = (_selectedCalendarDay ?? 1).clamp(1, daysInMonth);
+      _selectedCalendarDay = null;
       _historyResponseFuture = AttendanceService.getHistory(
         month: _selectedCalendarMonth.month,
         year: _selectedCalendarMonth.year,
@@ -106,8 +106,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void _nextCalendarMonth() {
     setState(() {
       _selectedCalendarMonth = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month + 1, 1);
-      final daysInMonth = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month + 1, 0).day;
-      _selectedCalendarDay = (_selectedCalendarDay ?? 1).clamp(1, daysInMonth);
+      _selectedCalendarDay = null;
       _historyResponseFuture = AttendanceService.getHistory(
         month: _selectedCalendarMonth.month,
         year: _selectedCalendarMonth.year,
@@ -135,8 +134,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildInteractiveAttendanceCard(context),
-                    const SizedBox(height: 16),
-                    _buildAttendanceActions(context),
                     const SizedBox(height: 20),
                     _buildStatisticsSummary(context),
                     const SizedBox(height: 20),
@@ -224,68 +221,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xFF10B981),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'Live Presensi',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.14),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              width: 1,
-                            ),
-                          ),
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            tooltip: 'Unduh Rekap Presensi',
-                            icon: const Icon(
-                              Icons.file_download_outlined,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            onPressed: () => _handleExportCSV(context),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
                         Container(
                           width: 40,
                           height: 40,
@@ -332,7 +272,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Kelola presensi, riwayat kehadiran, dan jadwal kerja',
+                  'Pantau jam kerja dan riwayat kehadiran',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.78),
                     fontSize: 12,
@@ -411,8 +351,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
+  // Tampilan utama: satu status, satu instruksi, dan dua jam presensi.
   Widget _buildInteractiveAttendanceCard(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -425,411 +367,350 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          FutureBuilder<Map<String, dynamic>?>(
+      child: FutureBuilder<Map<String, dynamic>?>(
         future: _todayFuture,
         builder: (context, snapshot) {
-          final data = snapshot.data;
-          final String checkIn = _extractTimeStr(data?['check_in']);
-          final String checkOut = _extractTimeStr(data?['check_out']);
-          
-          final String checkInTime = checkIn != '--:--' && checkIn.length >= 5 ? checkIn.substring(0, 5) : checkIn;
-          final String checkOutTime = checkOut != '--:--' && checkOut.length >= 5 ? checkOut.substring(0, 5) : checkOut;
-          final bool isCheckedIn = checkInTime != '--:--';
-          final bool isCheckedOut = checkOutTime != '--:--';
-
-          final rawStatus = data?['status']?.toString();
-          final rawBadge = data?['status_badge']?.toString().toLowerCase();
-          final approvedRequest = data?['approved_request'] is Map
-              ? AttendanceApprovedRequest.fromJson(data!['approved_request'])
-              : null;
-          final bool isApprovedRequest =
-              (data?['status_source']?.toString().toLowerCase() == 'approved_request') ||
-                  approvedRequest != null;
-
-          final String statusText;
-          final Color statusColor;
-          final Color statusBg;
-
-          if (rawStatus != null && rawStatus.isNotEmpty && rawStatus.toLowerCase() != 'belum presensi') {
-            statusText = rawStatus;
-            final sLower = rawStatus.toLowerCase();
-            if (sLower.contains('cuti')) {
-              statusColor = AppColors.primary;
-              statusBg = const Color(0xFFEFF6FF);
-            } else if (sLower.contains('izin')) {
-              statusColor = Colors.orange.shade800;
-              statusBg = const Color(0xFFFFF7ED);
-            } else if (sLower.contains('sakit')) {
-              statusColor = AppColors.error;
-              statusBg = const Color(0xFFFEF2F2);
-            } else if (sLower.contains('lembur')) {
-              statusColor = const Color(0xFF4F46E5);
-              statusBg = const Color(0xFFEEF2FF);
-            } else if (sLower.contains('dinas')) {
-              statusColor = const Color(0xFF7C3AED);
-              statusBg = const Color(0xFFF5F3FF);
-            } else if (rawBadge == 'success' || sLower.contains('hadir') || sLower.contains('lengkap')) {
-              statusColor = const Color(0xFF16A34A);
-              statusBg = const Color(0xFFDCFCE7);
-            } else if (rawBadge == 'warning' || sLower.contains('lambat')) {
-              statusColor = const Color(0xFFD97706);
-              statusBg = const Color(0xFFFEF3C7);
-            } else if (rawBadge == 'error' || sLower.contains('tidak') || sLower.contains('alpa')) {
-              statusColor = const Color(0xFFDC2626);
-              statusBg = const Color(0xFFFEE2E2);
-            } else {
-              statusColor = const Color(0xFF0D9488);
-              statusBg = const Color(0xFFCCFBF1);
-            }
-          } else if (isCheckedOut) {
-            statusText = 'Presensi Lengkap';
-            statusColor = const Color(0xFF0D9488);
-            statusBg = const Color(0xFFCCFBF1);
-          } else if (isCheckedIn) {
-            statusText = 'Sudah Presensi Masuk';
-            statusColor = const Color(0xFF16A34A);
-            statusBg = const Color(0xFFDCFCE7);
-          } else {
-            statusText = 'Belum Presensi';
-            statusColor = const Color(0xFFD97706);
-            statusBg = const Color(0xFFFEF3C7);
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 46),
+              child: Center(child: ArtechLoadingWidget(size: 48, showHalo: false)),
+            );
+          }
+          if (snapshot.hasError) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Center(child: Text('Data presensi belum dapat dimuat. Tarik untuk mencoba lagi.')),
+            );
           }
 
-          final sourceLabel = data?['source_label']?.toString();
-          final isFingerSpot = (data?['source'] ?? '').toString().toLowerCase().contains('finger') ||
-              (sourceLabel ?? '').toLowerCase().contains('mesin');
+          final data = snapshot.data;
+          final checkIn = _formatAttendanceTime(data?['check_in']);
+          final checkOut = _formatAttendanceTime(data?['check_out']);
+          final hasIn = checkIn != '--:--';
+          final hasOut = checkOut != '--:--';
+          final rawRequest = data?['approved_request'];
+          final request = rawRequest is Map
+              ? AttendanceApprovedRequest.fromJson(rawRequest)
+              : null;
+          final isApproved = request != null ||
+              data?['status_source']?.toString().toLowerCase() == 'approved_request';
+          final rawStatus = data?['status']?.toString().trim() ?? '';
+          final rawBadge = data?['status_badge']?.toString().toLowerCase() ?? '';
+          final status = _cleanStatus(
+            isApproved
+                ? (request?.displayTitle ?? rawStatus)
+                : (rawStatus.isEmpty || rawStatus.toLowerCase() == 'belum presensi'
+                    ? (hasOut ? 'Presensi Lengkap' : hasIn ? 'Sudah Masuk' : 'Belum Presensi')
+                    : rawStatus),
+          );
+          final statusColor = _getStatusColor(status, rawBadge);
+          final statusBg = statusColor.withValues(alpha: 0.1);
+          final source = '${data?['source'] ?? ''} ${data?['source_label'] ?? ''}'.toLowerCase();
+          final isFingerSpot = source.contains('finger') || source.contains('mesin');
+          final schedule = data?['schedule'];
+          final target = schedule is Map ? _extractTimeStr(schedule['check_in_target'], fallback: '') : '';
+          final targetTime = target.length >= 5 ? target.substring(0, 5) : '';
 
-          final rawTarget = data?['schedule']?['check_in_target']?.toString();
-          final shiftText = (rawTarget != null && rawTarget.length >= 5)
-              ? 'Batas Masuk: ${rawTarget.substring(0, 5)} WIB • Pulang: 17:00 WIB'
-              : 'Shift Normal: 08:00 - 17:00 WIB';
+          final now = DateTime.now();
+          final dateText = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
+          final normalizedStatus = isApproved && status.toLowerCase().contains('cuti')
+              ? 'Cuti'
+              : status;
+          final statusIcon = status.toLowerCase().contains('cuti')
+              ? Icons.beach_access_rounded
+              : status.toLowerCase().contains('izin')
+                  ? Icons.event_note_rounded
+                  : status.toLowerCase().contains('sakit')
+                      ? Icons.medical_services_outlined
+                      : status.toLowerCase().contains('dinas')
+                          ? Icons.flight_takeoff_rounded
+                          : status.toLowerCase().contains('lembur')
+                              ? Icons.more_time_rounded
+                              : Icons.verified_outlined;
 
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: statusBg,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(width: 8, height: 8, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              statusText,
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: statusColor, fontWeight: FontWeight.bold),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isApprovedRequest) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.assignment_turned_in_rounded, size: 10, color: statusColor),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    'Pengajuan ACC',
-                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: statusColor),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ] else if (isFingerSpot) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.fingerprint, size: 10, color: statusColor),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    'FingerSpot',
-                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: statusColor),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: statusBg,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 8),
-                  Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.calendar_today, size: 13, color: AppColors.primary),
-                      const SizedBox(width: 5),
-                      Text(
-                        DateFormat('d MMM yyyy', 'id_ID').format(DateTime.now()),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
+                      Icon(statusIcon, size: 15, color: statusColor),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          normalizedStatus,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: statusColor,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 24),
-              LiveClockWidget(
-                timeStyle: Theme.of(context).textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface),
-                amPmStyle: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.primary),
+              const SizedBox(height: 18),
+              Center(
+                child: LiveClockWidget(
+                  timeStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF12346F),
+                    letterSpacing: -0.7,
+                  ),
+                  amPmStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 5),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.verified, size: 14, color: AppColors.secondary),
-                  const SizedBox(width: 6),
-                  Flexible(child: Text(shiftText, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant), overflow: TextOverflow.ellipsis)),
+                  const Icon(Icons.calendar_today_outlined,
+                      color: Color(0xFF64748B), size: 12),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      dateText,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.outlineVariant.withOpacity(0.5)),
+              if (!isApproved && targetTime.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                Center(
+                  child: Text(
+                    'Batas masuk $targetTime WIB',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
                 ),
-                child: Row(
+              ],
+              const SizedBox(height: 18),
+              if (isApproved)
+                _buildApprovedSummary(request, statusColor)
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 13),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _buildAttendanceTime('Masuk', checkIn, hasIn, Icons.login_rounded)),
+                          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildAttendanceTime('Pulang', checkOut, hasOut, Icons.logout_rounded)),
+                        ],
+                      ),
+                      if (hasIn && hasOut && _calculateDuration(checkIn, checkOut).isNotEmpty) ...[
+                        const Divider(height: 22, color: Color(0xFFE2E8F0)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 15, color: Color(0xFF64748B)),
+                            const SizedBox(width: 7),
+                            Flexible(child: Text('Durasi kerja: ${_calculateDuration(checkIn, checkOut)}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)))),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              if (!isApproved && isFingerSpot && (hasIn || hasOut)) ...[
+                const SizedBox(height: 11),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(child: _buildAttendanceMetric(context, 'Jam Masuk', checkInTime, checkInTime != '--:--' ? 'Tercatat' : 'Belum Masuk', AppColors.primary, AppColors.secondary)),
-                    Container(width: 1, height: 40, color: AppColors.outlineVariant.withOpacity(0.5)),
-                    Expanded(child: _buildAttendanceMetric(context, 'Jam Pulang', checkOutTime, checkOutTime != '--:--' ? 'Selesai' : 'Belum Checkout', AppColors.onSurfaceVariant, AppColors.outline)),
-                    Container(width: 1, height: 40, color: AppColors.outlineVariant.withOpacity(0.5)),
-                    Expanded(child: _buildAttendanceMetric(context, 'Status', statusText, isFingerSpot ? 'FingerSpot' : 'Mobile', AppColors.onSurface, statusColor, showUnit: false)),
+                    Icon(Icons.fingerprint, size: 14, color: Color(0xFF64748B)),
+                    SizedBox(width: 5),
+                    Text('Tercatat melalui FingerSpot', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                   ],
                 ),
-              ),
+              ],
             ],
           );
         },
       ),
+    );
+  }
+
+  String _formatAttendanceTime(dynamic value) {
+    final valueText = _extractTimeStr(value);
+    if (valueText == '--:--') return valueText;
+    return valueText.length >= 5 ? valueText.substring(0, 5) : valueText;
+  }
+
+  String _cleanStatus(String raw) {
+    var value = raw.trim()
+        .replaceFirst(RegExp(r'^pengajuan\s+', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(ACC\)', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\b(disetujui)(?:\s+disetujui)+\b', caseSensitive: false), 'Disetujui')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (value.isEmpty) value = 'Belum Presensi';
+    return value;
+  }
+
+  // Tampilan jam masuk/pulang mengikuti kartu pada HomeScreen.
+  Widget _buildAttendanceTime(
+    String label,
+    String time,
+    bool recorded,
+    IconData icon,
+  ) {
+    final accent = label == 'Masuk'
+        ? const Color(0xFF16A34A)
+        : const Color(0xFF4F46E5);
+    const muted = Color(0xFF64748B);
+
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: recorded
+                ? accent.withValues(alpha: 0.10)
+                : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            size: 17,
+            color: recorded ? accent : muted,
+          ),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  color: muted,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                time,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: recorded ? const Color(0xFF0F172A) : muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Panel pengajuan disetujui mengikuti referensi kartu HomeScreen.
+  Widget _buildApprovedSummary(AttendanceApprovedRequest? request, Color color) {
+    final number = request?.requestNumber?.trim() ?? '';
+    final description = request?.description?.trim() ?? '';
+    final period = request?.formattedPeriod?.trim() ?? '';
+    const blue = Color(0xFF0037B0);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF4FD),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBED0EF), width: 1.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (number.isNotEmpty) ...[
+            _approvedInfo(Icons.receipt_long_rounded, 'No. $number', blue),
+            const SizedBox(height: 10),
+          ],
+          if (period.isNotEmpty) ...[
+            _approvedInfo(Icons.calendar_month_outlined, 'Periode: $period', blue),
+            const SizedBox(height: 10),
+          ],
+          if (description.isNotEmpty) ...[
+            _approvedInfo(Icons.notes_rounded, description, blue,
+                textColor: const Color(0xFF64748B)),
+            const SizedBox(height: 12),
+          ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: _approvedInfo(
+              Icons.check_circle_outline_rounded,
+              'Tidak perlu scan presensi',
+              blue,
+              bold: true,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAttendanceMetric(BuildContext context, String label, String value, String status, Color valueColor, Color statusColor, {bool isDuration = false, bool showUnit = true}) {
-    return Column(
+  Widget _approvedInfo(
+    IconData icon,
+    String value,
+    Color accent, {
+    bool bold = false,
+    Color textColor = const Color(0xFF0F172A),
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant), overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Flexible(
-              child: Text(
-                value, 
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: valueColor, 
-                  fontWeight: FontWeight.bold,
-                  fontSize: showUnit ? null : 13,
-                ), 
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
+        Icon(icon, size: 15, color: accent),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            softWrap: true,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              height: 1.35,
+              color: textColor,
+              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
             ),
-            if (!isDuration && showUnit) ...[
-              const SizedBox(width: 2),
-              Text('WIB', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.normal, color: valueColor)),
-            ],
-          ],
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(status, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, color: statusColor), overflow: TextOverflow.ellipsis),
       ],
-    );
-  }
-
-  Widget _buildAttendanceActions(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: _todayFuture,
-      builder: (context, snapshot) {
-        final data = snapshot.data;
-        final String checkIn = _extractTimeStr(data?['check_in']);
-        final String checkOut = _extractTimeStr(data?['check_out']);
-        final bool isCheckedIn = checkIn != '--:--';
-        final bool isCheckedOut = checkOut != '--:--';
-
-        final rawStatus = data?['status']?.toString();
-        final approvedRequest = data?['approved_request'] is Map
-            ? AttendanceApprovedRequest.fromJson(data!['approved_request'])
-            : null;
-        final bool isApprovedRequest =
-            (data?['status_source']?.toString().toLowerCase() == 'approved_request') ||
-                approvedRequest != null;
-
-        if (isApprovedRequest) {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFBBF7D0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFDCFCE7),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Status Hari Ini: ${rawStatus ?? "Pengajuan Disetujui"}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF166534)),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Pengajuan resmi telah disetujui. Bebas dari kewajiban presensi hari ini.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF15803D)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (isCheckedIn && isCheckedOut) {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFBBF7D0)),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 22),
-                SizedBox(width: 8),
-                Text(
-                  'Presensi Hari Ini Selesai',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Color(0xFF166534),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0037B0).withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.fingerprint_rounded,
-                  color: Color(0xFF0037B0),
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Presensi Mesin FingerSpot',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 1.5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'Aktif',
-                            style: TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF16A34A),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      isCheckedIn
-                          ? 'Jam masuk sudah tercatat ($checkIn WIB). Silakan scan pada mesin saat jam pulang kerja.'
-                          : 'Perekaman presensi masuk dan pulang otomatis terhubung ke mesin absensi kantor.',
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF64748B),
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -910,7 +791,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         _buildSectionHeader(
           context,
           'Ringkasan Presensi',
-          'Bulan Ini',
+          DateFormat('MMMM yyyy', 'id_ID').format(_selectedCalendarMonth),
           actionLabel: 'Unduh Rekap',
           actionIcon: Icons.file_download_outlined,
           onTapAction: () => _handleExportCSV(context),
@@ -925,22 +806,38 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 child: Center(child: ArtechLoadingWidget(size: 54, showHalo: false)),
               );
             }
-            final stats = snapshot.data?.statistics ?? AttendanceStatistics();
-            return GridView.count(
+            if (snapshot.hasError || snapshot.data == null) {
+              return Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: const Text(
+                  'Ringkasan belum dapat dimuat. Tarik layar untuk mencoba lagi.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+              );
+            }
+            final stats = snapshot.data!.statistics ?? AttendanceStatistics();
+            return LayoutBuilder(
+              builder: (context, constraints) => GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.1,
+              crossAxisCount: constraints.maxWidth < 350 ? 2 : 3,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: constraints.maxWidth < 350 ? 1.65 : 1.15,
               children: [
-                _buildStatCard(context, 'Tepat Waktu', '${stats.hadir}', Icons.check_circle, AppColors.secondary, AppColors.secondaryContainer.withOpacity(0.4)),
+                _buildStatCard(context, 'Hadir', '${stats.hadir}', Icons.check_circle, AppColors.secondary, AppColors.secondaryContainer.withOpacity(0.4)),
                 _buildStatCard(context, 'Terlambat', '${stats.terlambat}', Icons.schedule, Colors.orange[700]!, Colors.orange[100]!),
                 _buildStatCard(context, 'Cuti / Izin', '${stats.cuti + stats.izin}', Icons.beach_access, AppColors.primary, AppColors.primaryContainer.withOpacity(0.5)),
                 _buildStatCard(context, 'Sakit', '${stats.sakit}', Icons.medication, AppColors.onSurfaceVariant, AppColors.surfaceContainerHigh),
                 _buildStatCard(context, 'Dinas', '${stats.perjalananDinas}', Icons.flight_takeoff, AppColors.tertiary, AppColors.tertiaryContainer.withOpacity(0.5)),
                 _buildStatCard(context, 'Alpha', '${stats.tidakHadir}', Icons.cancel, AppColors.onSurfaceVariant, AppColors.surfaceContainerHigh),
               ],
+              ),
             );
           },
         ),
@@ -972,15 +869,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
             ],
           ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: iconColor, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 4),
-              Text('Hari', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 10)),
-            ],
-          ),
+          Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: iconColor, fontWeight: FontWeight.w800)),
         ],
       ),
     );
@@ -999,7 +888,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             _buildSectionHeader(
               context,
               'Kalender & Riwayat Presensi',
-              DateFormat('MMMM yyyy', 'id_ID').format(_selectedCalendarMonth),
+              'Rincian harian',
               actionLabel: 'Lihat Semua',
               actionIcon: Icons.arrow_forward_rounded,
               onTapAction: () {
@@ -1036,31 +925,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               _buildCalendarLegend(),
               const SizedBox(height: 10),
 
-              // 3. Info Hint Ketuk Tanggal
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.touch_app_outlined, size: 14, color: Color(0xFF94A3B8)),
-                      const SizedBox(width: 5),
-                      Flexible(
-                        child: Text(
-                          'Ketuk tanggal untuk melihat rincian kehadiran',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: Color(0xFF94A3B8),
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ],
         );
@@ -1075,9 +939,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     for (final item in history) {
       if (item.date == targetDate) return item;
-      if (item.date.endsWith('-$dayStr') && item.date.startsWith('${_selectedCalendarMonth.year}-')) {
-        return item;
-      }
+      
     }
     return null;
   }
@@ -1094,7 +956,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final now = DateTime.now();
 
     // Jika hari masa depan dan belum ada catatan presensi
-    if (item == null && dt.isAfter(now)) {
+    if (item == null && dt.isAfter(DateTime(now.year, now.month, now.day))) {
       return null;
     }
 
@@ -1316,7 +1178,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 onTap: () {
                   setState(() => _selectedCalendarDay = dayNumber);
                   final dayDate = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month, dayNumber);
-                  _showDayDetailModal(context, item, dayNumber, dayDate);
+                  _showDayDetailModal(context, item, dayDate);
                 },
                 borderRadius: BorderRadius.circular(10),
                 child: AnimatedContainer(
@@ -1407,7 +1269,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Keterangan Titik Presensi',
+                  'Arti Warna Kalender',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -1429,7 +1291,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               _buildLegendDot(AppColors.primary, 'Cuti'),
               _buildLegendDot(Colors.orange.shade800, 'Izin'),
               _buildLegendDot(const Color(0xFFDC2626), 'Sakit / Alpha'),
-              _buildLegendDot(const Color(0xFF7C3AED), 'Dinas / Lembur'),
+              _buildLegendDot(const Color(0xFF7C3AED), 'Dinas'),
+              _buildLegendDot(const Color(0xFF4F46E5), 'Lembur'),
               _buildLegendDot(const Color(0xFF94A3B8), 'Hari Libur'),
             ],
           ),
@@ -1485,7 +1348,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   void _showDayDetailModal(
     BuildContext context,
     AttendanceHistoryItem? item,
-    int dayNumber,
     DateTime dayDate,
   ) {
     final statusColor = item != null
@@ -1558,15 +1420,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Tanggal $dayNumber',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -1602,7 +1455,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          item.status,
+                          _cleanStatus(item.status),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -1612,38 +1465,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (item.isApprovedRequest)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF86EFAC)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.verified_rounded,
-                                size: 12,
-                                color: Color(0xFF15803D),
-                              ),
-                              SizedBox(width: 3),
-                              Text(
-                                'Pengajuan ACC',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF15803D),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (item.isFingerSpot)
+                      if (item.isFingerSpot)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -1674,7 +1496,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             ],
                           ),
                         )
-                      else if (item.sourceLabel != null &&
+                      else if (!item.isApprovedRequest && item.sourceLabel != null &&
                           item.sourceLabel!.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -1701,7 +1523,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   const SizedBox(height: 14),
 
                   // Pengajuan ACC detail jika ada
-                  if (item.isApprovedRequest) ...[
+                  if (item.isApprovedRequest &&
+                      item.approvedRequest?.description?.trim().isNotEmpty == true) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -1713,32 +1536,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.assignment_turned_in_rounded,
-                                size: 15,
-                                color: Color(0xFF16A34A),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  item.approvedRequest?.typeLabel ?? item.status,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF166534),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
                           if (item.approvedRequest?.description != null &&
                               item.approvedRequest!.description!.isNotEmpty) ...[
-                            const SizedBox(height: 6),
                             Text(
-                              'Alasan: ${item.approvedRequest!.description}',
+                              item.approvedRequest!.description!,
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF15803D),
@@ -1957,7 +1758,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ],
 
                   // Catatan
-                  if (item.notes != null && item.notes!.isNotEmpty) ...[
+                  if (item.notes != null &&
+                      item.notes!.trim().isNotEmpty &&
+                      item.notes!.trim().toLowerCase() !=
+                          (item.approvedRequest?.description ?? '').trim().toLowerCase()) ...[
                     const SizedBox(height: 10),
                     Container(
                       width: double.infinity,
@@ -1967,7 +1771,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        'Catatan: ${item.notes}',
+                        item.notes!.trim().replaceFirst(RegExp(r'^catatan:\s*', caseSensitive: false), ''),
                         style: const TextStyle(
                           fontSize: 11.5,
                           color: Color(0xFF475569),
@@ -2060,12 +1864,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final targetYear = _selectedCalendarMonth.year;
     final monthName = DateFormat('MMMM yyyy', 'id_ID').format(_selectedCalendarMonth);
     
-    final csvString = await AttendanceService.exportAttendanceCSV(
-      targetMonth,
-      targetYear,
-      employeeId: _selectedEmployeeId,
-    );
-    
+    String? csvString;
+    try {
+      csvString = await AttendanceService.exportAttendanceCSV(
+        targetMonth,
+        targetYear,
+        employeeId: _selectedEmployeeId,
+      );
+    } catch (_) {
+      csvString = null;
+    }
+
     if (csvString == null || !context.mounted) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
