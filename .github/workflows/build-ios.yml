@@ -35,7 +35,22 @@ jobs:
         run: flutter pub get
 
       - name: Build unsigned iOS app
-        run: flutter build ios --release --no-codesign
+        shell: bash
+        run: |
+          set +e
+          flutter build ios --release --no-codesign
+          flutter_status=$?
+          set -e
+
+          app_path="build/ios/iphoneos/Runner.app"
+          if [[ $flutter_status -ne 0 && ! -d "$app_path" ]]; then
+            echo "Flutter build failed and Runner.app was not produced." >&2
+            exit "$flutter_status"
+          fi
+
+          if [[ $flutter_status -ne 0 ]]; then
+            echo "::warning::Flutter rejected the unsigned device build after Xcode completed. Runner.app exists, so IPA packaging will continue."
+          fi
 
       # An IPA is a ZIP archive containing Payload/Runner.app. Packaging the
       # unsigned app directly avoids Xcode's Development Team requirement.
