@@ -40,6 +40,7 @@ class SopService {
       uri,
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
     );
@@ -107,6 +108,7 @@ class SopService {
       uri,
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
     );
@@ -144,6 +146,7 @@ class SopService {
       uri,
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
     );
@@ -192,6 +195,7 @@ class SopService {
       headers: {
         if (token != null) 'Authorization': 'Bearer $token',
         'Accept': '*/*',
+        'Content-Type': 'application/json',
       },
     );
 
@@ -222,6 +226,7 @@ class SopService {
       headers: {
         if (token != null) 'Authorization': 'Bearer $token',
         'Accept': '*/*',
+        'Content-Type': 'application/json',
       },
     );
 

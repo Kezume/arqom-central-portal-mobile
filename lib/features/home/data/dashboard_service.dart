@@ -16,6 +16,7 @@ class DashboardService {
         Uri.parse('${AuthService.baseUrl}/dashboard'),
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 15));

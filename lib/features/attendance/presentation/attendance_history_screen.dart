@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path_provider/path_provider.dart';
@@ -84,7 +85,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         setState(() {
           _availableEmployees = employees;
           // Only maintain selected employee if there are multiple employees to choose from
-          if (employees.length > 1 && _selectedEmployeeId != null && _selectedEmployeeName == null) {
+          if (employees.length > 1 &&
+              _selectedEmployeeId != null &&
+              _selectedEmployeeName == null) {
             final match = employees.firstWhere(
               (e) => e.id == _selectedEmployeeId,
               orElse: () => employees.first,
@@ -145,10 +148,13 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     final s = item.status.toLowerCase().trim();
     final b = item.statusBadge.toLowerCase().trim();
     final cat = (item.lateCategory ?? '').toLowerCase().trim();
-    final reqType = item.approvedRequest?.requestType?.toLowerCase().trim() ?? '';
-    final reqLabel = item.approvedRequest?.typeLabel?.toLowerCase().trim() ?? '';
+    final reqType =
+        item.approvedRequest?.requestType?.toLowerCase().trim() ?? '';
+    final reqLabel =
+        item.approvedRequest?.typeLabel?.toLowerCase().trim() ?? '';
 
-    final bool isLate = s.contains('lambat') ||
+    final bool isLate =
+        s.contains('lambat') ||
         item.lateMinutes > 0 ||
         cat == 'late' ||
         cat == 'terlambat' ||
@@ -157,20 +163,22 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
     final bool isPendingCheckOut = s.contains('belum');
 
-    final bool isAbsent = s.contains('tidak') ||
-        s.contains('alpa') ||
-        s.contains('alpha');
+    final bool isAbsent =
+        s.contains('tidak') || s.contains('alpa') || s.contains('alpha');
 
-    final bool isLeave = item.isApprovedRequest ||
+    final bool isLeave =
+        item.isApprovedRequest ||
         s.contains('cuti') ||
         s.contains('izin') ||
         s.contains('sakit') ||
         s.contains('dinas') ||
         s.contains('lembur');
 
-    final bool isHoliday = item.isWeekend || item.isHoliday || s.contains('libur');
+    final bool isHoliday =
+        item.isWeekend || item.isHoliday || s.contains('libur');
 
-    final bool hasCheckIn = item.checkInTime != null &&
+    final bool hasCheckIn =
+        item.checkInTime != null &&
         item.checkInTime!.isNotEmpty &&
         item.checkInTime != '--:--';
 
@@ -192,7 +200,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
     // 2. TEPAT WAKTU (Khusus yang hadir tepat waktu murni)
     if (f == 'tepat waktu') {
-      if (isAbsent || isLeave || isHoliday || isLate || isPendingCheckOut) return false;
+      if (isAbsent || isLeave || isHoliday || isLate || isPendingCheckOut) {
+        return false;
+      }
       return s == 'hadir' || s.contains('tepat') || b == 'success';
     }
 
@@ -210,28 +220,38 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
     // 5. IZIN
     if (f == 'izin') {
-      return (s.contains('izin') || reqType.contains('izin') || reqLabel.contains('izin')) &&
+      return (s.contains('izin') ||
+              reqType.contains('izin') ||
+              reqLabel.contains('izin')) &&
           !s.contains('sakit');
     }
 
     // 6. SAKIT
     if (f == 'sakit') {
-      return s.contains('sakit') || reqType.contains('sakit') || reqLabel.contains('sakit');
+      return s.contains('sakit') ||
+          reqType.contains('sakit') ||
+          reqLabel.contains('sakit');
     }
 
     // 7. CUTI
     if (f == 'cuti') {
-      return s.contains('cuti') || reqType.contains('cuti') || reqLabel.contains('cuti');
+      return s.contains('cuti') ||
+          reqType.contains('cuti') ||
+          reqLabel.contains('cuti');
     }
 
     // 8. PERJALANAN DINAS
     if (f.contains('dinas')) {
-      return s.contains('dinas') || reqType.contains('dinas') || reqLabel.contains('dinas');
+      return s.contains('dinas') ||
+          reqType.contains('dinas') ||
+          reqLabel.contains('dinas');
     }
 
     // 9. LEMBUR
     if (f == 'lembur') {
-      return s.contains('lembur') || reqType.contains('lembur') || reqLabel.contains('lembur');
+      return s.contains('lembur') ||
+          reqType.contains('lembur') ||
+          reqLabel.contains('lembur');
     }
 
     // 10. TIDAK HADIR / ALPHA
@@ -249,14 +269,17 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
   List<AttendanceHistoryItem> get _filteredHistory {
     if (_selectedStatus == 'Semua') return _allHistory;
-    return _allHistory.where((item) => _matchesStatus(item, _selectedStatus)).toList();
+    return _allHistory
+        .where((item) => _matchesStatus(item, _selectedStatus))
+        .toList();
   }
 
   void _previousMonth() {
     setState(() {
       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
       final now = DateTime.now();
-      if (now.year == _selectedMonth.year && now.month == _selectedMonth.month) {
+      if (now.year == _selectedMonth.year &&
+          now.month == _selectedMonth.month) {
         _selectedCalendarDay = now.day;
       } else {
         _selectedCalendarDay = 1;
@@ -269,7 +292,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     setState(() {
       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
       final now = DateTime.now();
-      if (now.year == _selectedMonth.year && now.month == _selectedMonth.month) {
+      if (now.year == _selectedMonth.year &&
+          now.month == _selectedMonth.month) {
         _selectedCalendarDay = now.day;
       } else {
         _selectedCalendarDay = 1;
@@ -310,10 +334,12 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         await file.writeAsString(csvContent);
 
         if (mounted) {
-          await Share.shareXFiles(
-            [XFile(file.path)],
-            text:
-                'Rekap Presensi Periode ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth)}',
+          await SharePlus.instance.share(
+            ShareParams(
+              files: [XFile(file.path)],
+              text:
+                  'Rekap Presensi Periode ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth)}',
+            ),
           );
         }
       } else {
@@ -338,7 +364,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   Color _getStatusColor(String status, String badge) {
     final s = status.toLowerCase();
     final b = badge.toLowerCase();
-    if (b == 'success' || s == 'hadir' || s.contains('tepat')) return const Color(0xFF16A34A);
+    if (b == 'success' || s == 'hadir' || s.contains('tepat')) {
+      return const Color(0xFF16A34A);
+    }
     if (s.contains('belum absen pulang')) return const Color(0xFFEA580C);
     if (b == 'warning' || s.contains('lambat') || s.contains('candidate')) {
       return const Color(0xFFD97706);
@@ -348,7 +376,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     if (s.contains('sakit')) return AppColors.error;
     if (s.contains('lembur')) return const Color(0xFF4F46E5);
     if (s.contains('dinas')) return const Color(0xFF7C3AED);
-    if (b == 'error' || s.contains('tidak') || s.contains('alpa') || s.contains('alpha')) {
+    if (b == 'error' ||
+        s.contains('tidak') ||
+        s.contains('alpa') ||
+        s.contains('alpha')) {
       return AppColors.error;
     }
     if (s.contains('libur')) return const Color(0xFF64748B);
@@ -423,7 +454,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
               ),
               // Header modal
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -468,17 +502,19 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   shrinkWrap: true,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: _statusFilters.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    height: 1,
-                    indent: 64,
-                    color: Color(0xFFF1F5F9),
-                  ),
+                  separatorBuilder:
+                      (_, __) => const Divider(
+                        height: 1,
+                        indent: 64,
+                        color: Color(0xFFF1F5F9),
+                      ),
                   itemBuilder: (context, index) {
                     final status = _statusFilters[index];
                     final isSelected = _selectedStatus == status;
-                    final count = _allHistory
-                        .where((item) => _matchesStatus(item, status))
-                        .length;
+                    final count =
+                        _allHistory
+                            .where((item) => _matchesStatus(item, status))
+                            .length;
 
                     final icon = _getFilterIcon(status);
                     final color = _getFilterColor(status);
@@ -502,9 +538,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                           fontSize: 14,
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected
-                              ? AppColors.primary
-                              : const Color(0xFF1E293B),
+                          color:
+                              isSelected
+                                  ? AppColors.primary
+                                  : const Color(0xFF1E293B),
                         ),
                       ),
                       trailing: Row(
@@ -516,9 +553,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : const Color(0xFFF1F5F9),
+                              color:
+                                  isSelected
+                                      ? AppColors.primary
+                                      : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -526,9 +564,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF64748B),
+                                color:
+                                    isSelected
+                                        ? Colors.white
+                                        : const Color(0xFF64748B),
                               ),
                             ),
                           ),
@@ -537,9 +576,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                             isSelected
                                 ? Icons.check_circle_rounded
                                 : Icons.radio_button_unchecked_rounded,
-                            color: isSelected
-                                ? AppColors.primary
-                                : const Color(0xFFCBD5E1),
+                            color:
+                                isSelected
+                                    ? AppColors.primary
+                                    : const Color(0xFFCBD5E1),
                             size: 20,
                           ),
                         ],
@@ -561,7 +601,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final String monthDisplay = _historyData?.period?['month_name']?.toString() ??
+    final String monthDisplay =
+        _historyData?.period?['month_name']?.toString() ??
         DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth);
 
     return Scaffold(
@@ -571,8 +612,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Riwayat Absensi',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              'Riwayat Kehadiran',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             if (_selectedEmployeeName != null)
               Text(
@@ -614,7 +655,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
             onPressed: _showFilterBottomSheet,
           ),
           IconButton(
-            tooltip: 'Export CSV',
+            tooltip: 'Unduh CSV',
             icon: const Icon(Icons.file_download_outlined),
             onPressed: _exportCSV,
           ),
@@ -628,13 +669,14 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
               return IconButton(
                 tooltip: 'Notifikasi',
-                icon: unreadCount > 0
-                    ? const Badge(
-                        backgroundColor: Color(0xFFEF4444),
-                        smallSize: 8,
-                        child: iconWidget,
-                      )
-                    : iconWidget,
+                icon:
+                    unreadCount > 0
+                        ? const Badge(
+                          backgroundColor: Color(0xFFEF4444),
+                          smallSize: 8,
+                          child: iconWidget,
+                        )
+                        : iconWidget,
                 onPressed: () async {
                   await Navigator.push(
                     context,
@@ -819,14 +861,16 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: _selectedStatus == 'Semua'
-                            ? const Color(0xFFF1F5F9)
-                            : AppColors.primary.withValues(alpha: 0.1),
+                        color:
+                            _selectedStatus == 'Semua'
+                                ? const Color(0xFFF1F5F9)
+                                : AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: _selectedStatus == 'Semua'
-                              ? const Color(0xFFCBD5E1)
-                              : AppColors.primary,
+                          color:
+                              _selectedStatus == 'Semua'
+                                  ? const Color(0xFFCBD5E1)
+                                  : AppColors.primary,
                           width: 1.2,
                         ),
                       ),
@@ -835,9 +879,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                           Icon(
                             Icons.filter_list_rounded,
                             size: 16,
-                            color: _selectedStatus == 'Semua'
-                                ? const Color(0xFF475569)
-                                : AppColors.primary,
+                            color:
+                                _selectedStatus == 'Semua'
+                                    ? const Color(0xFF475569)
+                                    : AppColors.primary,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -848,9 +893,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: _selectedStatus == 'Semua'
-                                    ? const Color(0xFF334155)
-                                    : AppColors.primary,
+                                color:
+                                    _selectedStatus == 'Semua'
+                                        ? const Color(0xFF334155)
+                                        : AppColors.primary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -860,9 +906,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                           Icon(
                             Icons.keyboard_arrow_down_rounded,
                             size: 16,
-                            color: _selectedStatus == 'Semua'
-                                ? const Color(0xFF64748B)
-                                : AppColors.primary,
+                            color:
+                                _selectedStatus == 'Semua'
+                                    ? const Color(0xFF64748B)
+                                    : AppColors.primary,
                           ),
                         ],
                       ),
@@ -981,78 +1028,84 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // A. Integrated Monthly Statistics Cards (Tetap 1 statistik utuh sebulan)
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 0.88,
-            children: [
-              _buildMiniStat(
-                'Hadir',
-                '${stats.hadir}',
-                Icons.check_circle_rounded,
-                const Color(0xFF16A34A),
-                const Color(0xFFDCFCE7),
-              ),
-              _buildMiniStat(
-                'Terlambat',
-                '${stats.terlambat}',
-                Icons.schedule_rounded,
-                const Color(0xFFD97706),
-                const Color(0xFFFEF3C7),
-              ),
-              _buildMiniStat(
-                'Belum Pulang',
-                '${stats.belumAbsenPulang}',
-                Icons.pending_actions_rounded,
-                const Color(0xFFEA580C),
-                const Color(0xFFFFEDD5),
-              ),
-              _buildMiniStat(
-                'Cuti',
-                '${stats.cuti}',
-                Icons.beach_access_rounded,
-                AppColors.primary,
-                const Color(0xFFDBEAFE),
-              ),
-              _buildMiniStat(
-                'Izin / Sakit',
-                '${stats.izin + stats.sakit}',
-                Icons.medical_services_rounded,
-                AppColors.error,
-                const Color(0xFFFEE2E2),
-              ),
-              _buildMiniStat(
-                'Dinas / Lembur',
-                '${stats.perjalananDinas + stats.lembur}',
-                Icons.flight_takeoff_rounded,
-                const Color(0xFF7C3AED),
-                const Color(0xFFF5F3FF),
-              ),
-              _buildMiniStat(
-                'Alpha',
-                '${stats.tidakHadir}',
-                Icons.cancel_rounded,
-                const Color(0xFFDC2626),
-                const Color(0xFFFEE2E2),
-              ),
-              _buildMiniStat(
-                'Hari Libur',
-                '${stats.hariLibur}',
-                Icons.wb_sunny_rounded,
-                const Color(0xFF64748B),
-                const Color(0xFFF1F5F9),
-              ),
-              _buildMiniStat(
-                'Kehadiran',
-                '${stats.persentaseKehadiran.toStringAsFixed(0)}%',
-                Icons.pie_chart_rounded,
-                const Color(0xFF0D9488),
-                const Color(0xFFCCFBF1),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 3,
+              childAspectRatio: 1.45,
+              children: [
+                _buildMiniStat(
+                  'Hadir',
+                  '${stats.hadir}',
+                  Icons.check_circle_rounded,
+                  const Color(0xFF16A34A),
+                  const Color(0xFFDCFCE7),
+                ),
+                _buildMiniStat(
+                  'Terlambat',
+                  '${stats.terlambat}',
+                  Icons.schedule_rounded,
+                  const Color(0xFFD97706),
+                  const Color(0xFFFEF3C7),
+                ),
+                _buildMiniStat(
+                  'Belum Pulang',
+                  '${stats.belumAbsenPulang}',
+                  Icons.pending_actions_rounded,
+                  const Color(0xFFEA580C),
+                  const Color(0xFFFFEDD5),
+                ),
+                _buildMiniStat(
+                  'Cuti',
+                  '${stats.cuti}',
+                  Icons.beach_access_rounded,
+                  AppColors.primary,
+                  const Color(0xFFDBEAFE),
+                ),
+                _buildMiniStat(
+                  'Izin / Sakit',
+                  '${stats.izin + stats.sakit}',
+                  Icons.medical_services_rounded,
+                  AppColors.error,
+                  const Color(0xFFFEE2E2),
+                ),
+                _buildMiniStat(
+                  'Dinas / Lembur',
+                  '${stats.perjalananDinas + stats.lembur}',
+                  Icons.flight_takeoff_rounded,
+                  const Color(0xFF7C3AED),
+                  const Color(0xFFF5F3FF),
+                ),
+                _buildMiniStat(
+                  'Alpha',
+                  '${stats.tidakHadir}',
+                  Icons.cancel_rounded,
+                  const Color(0xFFDC2626),
+                  const Color(0xFFFEE2E2),
+                ),
+                _buildMiniStat(
+                  'Hari Libur',
+                  '${stats.hariLibur}',
+                  Icons.wb_sunny_rounded,
+                  const Color(0xFF64748B),
+                  const Color(0xFFF1F5F9),
+                ),
+                _buildMiniStat(
+                  'Kehadiran',
+                  '${stats.persentaseKehadiran.toStringAsFixed(0)}%',
+                  Icons.pie_chart_rounded,
+                  const Color(0xFF0D9488),
+                  const Color(0xFFCCFBF1),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -1106,7 +1159,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
     for (final item in _allHistory) {
       if (item.date == targetDate) return item;
-      if (item.date.endsWith('-$dayStr') && item.date.startsWith('${_selectedMonth.year}-')) {
+      if (item.date.endsWith('-$dayStr') &&
+          item.date.startsWith('${_selectedMonth.year}-')) {
         return item;
       }
     }
@@ -1142,39 +1196,48 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
     // 1. Libur
     if (item.isWeekend || item.isHoliday || s.contains('libur')) {
-      final hasScan = item.checkInTime != null &&
+      final hasScan =
+          item.checkInTime != null &&
           item.checkInTime!.isNotEmpty &&
           item.checkInTime != '--:--';
       if (!hasScan) return const Color(0xFF94A3B8); // Slate
     }
 
     // 2. Cuti
-    if (s.contains('cuti') || item.approvedRequest?.requestType?.contains('cuti') == true) {
+    if (s.contains('cuti') ||
+        item.approvedRequest?.requestType?.contains('cuti') == true) {
       return AppColors.primary; // Blue
     }
 
     // 3. Izin
-    if (s.contains('izin') || item.approvedRequest?.requestType?.contains('izin') == true) {
+    if (s.contains('izin') ||
+        item.approvedRequest?.requestType?.contains('izin') == true) {
       return Colors.orange.shade800; // Brown-orange
     }
 
     // 4. Sakit
-    if (s.contains('sakit') || item.approvedRequest?.requestType?.contains('sakit') == true) {
+    if (s.contains('sakit') ||
+        item.approvedRequest?.requestType?.contains('sakit') == true) {
       return AppColors.error; // Red
     }
 
     // 5. Perjalanan Dinas
-    if (s.contains('dinas') || item.approvedRequest?.requestType?.contains('dinas') == true) {
+    if (s.contains('dinas') ||
+        item.approvedRequest?.requestType?.contains('dinas') == true) {
       return const Color(0xFF7C3AED); // Purple
     }
 
     // 6. Lembur
-    if (s.contains('lembur') || item.approvedRequest?.requestType?.contains('lembur') == true) {
+    if (s.contains('lembur') ||
+        item.approvedRequest?.requestType?.contains('lembur') == true) {
       return const Color(0xFF4F46E5); // Indigo
     }
 
     // 7. Tidak Hadir / Alpha
-    if (s.contains('tidak') || s.contains('alpa') || s.contains('alpha') || cat == 'alpha_candidate') {
+    if (s.contains('tidak') ||
+        s.contains('alpa') ||
+        s.contains('alpha') ||
+        cat == 'alpha_candidate') {
       return const Color(0xFFDC2626); // Red
     }
 
@@ -1184,7 +1247,11 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     }
 
     // 9. Terlambat
-    if (s.contains('lambat') || item.lateMinutes > 0 || cat == 'late' || cat == 'terlambat' || cat == 'very_late') {
+    if (s.contains('lambat') ||
+        item.lateMinutes > 0 ||
+        cat == 'late' ||
+        cat == 'terlambat' ||
+        cat == 'very_late') {
       return const Color(0xFFD97706); // Amber
     }
 
@@ -1193,8 +1260,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   }
 
   Widget _buildMonthlyCalendarCard() {
-    final daysInMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0).day;
-    final firstDayWeekday = DateTime(_selectedMonth.year, _selectedMonth.month, 1).weekday;
+    final daysInMonth =
+        DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0).day;
+    final firstDayWeekday =
+        DateTime(_selectedMonth.year, _selectedMonth.month, 1).weekday;
     final startOffset = (firstDayWeekday - 1) % 7;
     final totalCells = ((startOffset + daysInMonth + 6) ~/ 7) * 7;
     const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -1203,15 +1272,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1255,9 +1317,14 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
-                      color: _getFilterColor(_selectedStatus).withValues(alpha: 0.12),
+                      color: _getFilterColor(
+                        _selectedStatus,
+                      ).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1290,7 +1357,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: isWeekend ? const Color(0xFFEF4444) : const Color(0xFF64748B),
+                        color:
+                            isWeekend
+                                ? const Color(0xFFEF4444)
+                                : const Color(0xFF64748B),
                       ),
                     ),
                   ),
@@ -1323,8 +1393,14 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
               final dotColor = _getDotColorForDay(dayNumber);
               final isSelected = _selectedCalendarDay == dayNumber;
               final isToday = _isDayToday(dayNumber);
-              final matchesFilter = _selectedStatus == 'Semua' || (item != null && _matchesStatus(item, _selectedStatus));
-              final dayDate = DateTime(_selectedMonth.year, _selectedMonth.month, dayNumber);
+              final matchesFilter =
+                  _selectedStatus == 'Semua' ||
+                  (item != null && _matchesStatus(item, _selectedStatus));
+              final dayDate = DateTime(
+                _selectedMonth.year,
+                _selectedMonth.month,
+                dayNumber,
+              );
 
               return InkWell(
                 onTap: () {
@@ -1335,18 +1411,22 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : (isToday ? AppColors.primary.withValues(alpha: 0.08) : Colors.transparent),
+                    color:
+                        isSelected
+                            ? AppColors.primary
+                            : (isToday
+                                ? AppColors.primary.withValues(alpha: 0.08)
+                                : Colors.transparent),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : (isToday
-                              ? AppColors.primary.withValues(alpha: 0.6)
-                              : (_selectedStatus != 'Semua' && matchesFilter
-                                  ? _getFilterColor(_selectedStatus)
-                                  : Colors.transparent)),
+                      color:
+                          isSelected
+                              ? AppColors.primary
+                              : (isToday
+                                  ? AppColors.primary.withValues(alpha: 0.6)
+                                  : (_selectedStatus != 'Semua' && matchesFilter
+                                      ? _getFilterColor(_selectedStatus)
+                                      : Colors.transparent)),
                       width: isToday || isSelected ? 1.5 : 1.0,
                     ),
                   ),
@@ -1361,12 +1441,18 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                             '$dayNumber',
                             style: TextStyle(
                               fontSize: 13,
-                              fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w600,
-                              color: isSelected
-                                  ? Colors.white
-                                  : (matchesFilter
-                                      ? (index % 7 >= 5 ? const Color(0xFFEF4444) : const Color(0xFF1E293B))
-                                      : const Color(0xFFCBD5E1)),
+                              fontWeight:
+                                  isSelected || isToday
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
+                              color:
+                                  isSelected
+                                      ? Colors.white
+                                      : (matchesFilter
+                                          ? (index % 7 >= 5
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF1E293B))
+                                          : const Color(0xFFCBD5E1)),
                             ),
                           ),
                         ),
@@ -1407,15 +1493,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1461,10 +1540,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(
@@ -1479,8 +1555,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     );
   }
 
-
-
   Widget _buildMiniStat(
     String label,
     String value,
@@ -1488,20 +1562,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     Color color,
     Color bg,
   ) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1511,7 +1573,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF64748B),
@@ -1533,7 +1595,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: TextStyle(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: color,
@@ -1545,10 +1607,13 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     );
   }
 
-
-
   String _calculateDuration(String? checkIn, String? checkOut) {
-    if (checkIn == null || checkOut == null || checkIn.isEmpty || checkOut.isEmpty || checkIn == '--:--' || checkOut == '--:--') {
+    if (checkIn == null ||
+        checkOut == null ||
+        checkIn.isEmpty ||
+        checkOut.isEmpty ||
+        checkIn == '--:--' ||
+        checkOut == '--:--') {
       return '';
     }
     try {
@@ -1575,23 +1640,31 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     int dayNumber,
     DateTime dayDate,
   ) {
-    final statusColor = item != null
-        ? _getStatusColor(item.status, item.statusBadge)
-        : (dayDate.weekday >= 6 ? const Color(0xFF94A3B8) : AppColors.primary);
-    final isLate = item != null &&
+    final statusColor =
+        item != null
+            ? _getStatusColor(item.status, item.statusBadge)
+            : (dayDate.weekday >= 6
+                ? const Color(0xFF94A3B8)
+                : AppColors.primary);
+    final isLate =
+        item != null &&
         (item.status.toLowerCase().contains('lambat') || item.lateMinutes > 0);
-    final bool hasScan = item != null &&
+    final bool hasScan =
+        item != null &&
         ((item.checkInTime != null &&
                 item.checkInTime!.isNotEmpty &&
                 item.checkInTime != '--:--') ||
             (item.checkOutTime != null &&
                 item.checkOutTime!.isNotEmpty &&
                 item.checkOutTime != '--:--'));
-    final String duration = item != null
-        ? _calculateDuration(item.formattedCheckIn, item.formattedCheckOut)
-        : '';
-    final dateFormatted =
-        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(dayDate);
+    final String duration =
+        item != null
+            ? _calculateDuration(item.formattedCheckIn, item.formattedCheckOut)
+            : '';
+    final dateFormatted = DateFormat(
+      'EEEE, d MMMM yyyy',
+      'id_ID',
+    ).format(dayDate);
 
     showModalBottomSheet(
       context: context,
@@ -1810,7 +1883,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  item.approvedRequest?.typeLabel ?? item.status,
+                                  item.approvedRequest?.typeLabel ??
+                                      item.status,
                                   style: const TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.bold,
@@ -1822,7 +1896,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                             ],
                           ),
                           if (item.approvedRequest?.description != null &&
-                              item.approvedRequest!.description!.isNotEmpty) ...[
+                              item
+                                  .approvedRequest!
+                                  .description!
+                                  .isNotEmpty) ...[
                             const SizedBox(height: 6),
                             Text(
                               'Alasan: ${item.approvedRequest!.description}',
@@ -1887,9 +1964,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: isLate
-                                          ? const Color(0xFFD97706)
-                                          : const Color(0xFF1E293B),
+                                      color:
+                                          isLate
+                                              ? const Color(0xFFD97706)
+                                              : const Color(0xFF1E293B),
                                     ),
                                   ),
                                 ),

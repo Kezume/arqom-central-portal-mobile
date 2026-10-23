@@ -283,7 +283,7 @@ class PushNotificationService {
         data['action_url']?.toString().contains('logbook') == true) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const PerformanceScreen()),
+        MaterialPageRoute(builder: (_) => const PerformanceScreen(initialTabIndex: 2)),
       );
       return;
     }

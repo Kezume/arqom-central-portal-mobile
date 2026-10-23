@@ -62,6 +62,10 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
   bool _isArmed = false;
   bool _isUserTouching = false;
   bool _hasHapticsFired = false;
+  bool _hasPendingFrameUpdate = false;
+  bool _checkTriggerAfterFrame = false;
+  bool _dismissAfterFrame = false;
+  double? _dragOffsetAfterFrame;
 
   late final AnimationController _dismissController;
   Animation<double>? _dismissAnimation;
@@ -73,12 +77,12 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
       vsync: this,
       duration: const Duration(milliseconds: 260),
     )..addListener(() {
-        if (_dismissAnimation != null) {
-          setState(() {
-            _dragOffset = _dismissAnimation!.value;
-          });
-        }
-      });
+      if (_dismissAnimation != null) {
+        setState(() {
+          _dragOffset = _dismissAnimation!.value;
+        });
+      }
+    });
   }
 
   @override
@@ -118,6 +122,47 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
     }
   }
 
+  void _queueFrameUpdate({
+    double? dragOffset,
+    double? dragDelta,
+    bool checkTrigger = false,
+    bool dismiss = false,
+  }) {
+    if (dragOffset != null) {
+      _dragOffsetAfterFrame = dragOffset;
+    } else if (dragDelta != null) {
+      _dragOffsetAfterFrame =
+          (_dragOffsetAfterFrame ?? _dragOffset) + dragDelta;
+    }
+    _checkTriggerAfterFrame = _checkTriggerAfterFrame || checkTrigger;
+    _dismissAfterFrame = _dismissAfterFrame || dismiss;
+
+    if (_hasPendingFrameUpdate) return;
+    _hasPendingFrameUpdate = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _hasPendingFrameUpdate = false;
+      if (!mounted) return;
+
+      final pendingDragOffset = _dragOffsetAfterFrame;
+      final shouldDismiss = _dismissAfterFrame;
+      final shouldCheckTrigger = _checkTriggerAfterFrame;
+      _dragOffsetAfterFrame = null;
+      _dismissAfterFrame = false;
+      _checkTriggerAfterFrame = false;
+
+      if (pendingDragOffset != null) {
+        _updateDrag(pendingDragOffset);
+      }
+      if (shouldDismiss && _dragOffset > 0.0) {
+        _animateDismiss();
+      } else if (shouldCheckTrigger) {
+        _checkTrigger();
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
   Future<void> _startRefresh() async {
     if (_isRefreshing) return;
 
@@ -141,30 +186,26 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
       // Refresh error silently ignored or handled by parent
     } finally {
       if (mounted) {
-        _animateDismiss(onComplete: () {
-          if (mounted) {
-            setState(() {
-              _isRefreshing = false;
-              _isSuccess = false;
-              _isArmed = false;
-              _hasHapticsFired = false;
-              _dragOffset = 0.0;
-            });
-          }
-        });
+        _animateDismiss(
+          onComplete: () {
+            if (mounted) {
+              setState(() {
+                _isRefreshing = false;
+                _isSuccess = false;
+                _isArmed = false;
+                _hasHapticsFired = false;
+                _dragOffset = 0.0;
+              });
+            }
+          },
+        );
       }
     }
   }
 
   void _animateDismiss({VoidCallback? onComplete}) {
-    _dismissAnimation = Tween<double>(
-      begin: _dragOffset,
-      end: 0.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _dismissController,
-        curve: Curves.easeOutCubic,
-      ),
+    _dismissAnimation = Tween<double>(begin: _dragOffset, end: 0.0).animate(
+      CurvedAnimation(parent: _dismissController, curve: Curves.easeOutCubic),
     );
 
     _dismissController.forward(from: 0.0).then((_) {
@@ -193,32 +234,33 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
       // If user has scrolled down into page content, cancel drag
       if (notification.metrics.extentBefore > 0.0) {
         if (_dragOffset > 0.0) {
-          _animateDismiss();
+          _queueFrameUpdate(dismiss: true);
         }
         return false;
       }
 
       // Negative pixels on BouncingScrollPhysics represents overscroll at top
       if (notification.metrics.pixels < 0.0) {
-        _updateDrag(-notification.metrics.pixels);
+        _queueFrameUpdate(dragOffset: -notification.metrics.pixels);
       } else if (_dragOffset > 0.0 && notification.scrollDelta != null) {
-        _updateDrag(_dragOffset - notification.scrollDelta!);
+        _queueFrameUpdate(dragDelta: -notification.scrollDelta!);
       }
 
       // Check if user released finger during ballistic scroll
       if (notification.dragDetails == null && _isUserTouching) {
         _isUserTouching = false;
-        _checkTrigger();
+        _queueFrameUpdate(checkTrigger: true);
       }
     } else if (notification is OverscrollNotification) {
       // ClampingScrollPhysics on Android emits negative overscroll
-      if (notification.metrics.extentBefore == 0.0 && notification.overscroll < 0.0) {
+      if (notification.metrics.extentBefore == 0.0 &&
+          notification.overscroll < 0.0) {
         final delta = -notification.overscroll / 1.6;
-        _updateDrag(_dragOffset + delta);
+        _queueFrameUpdate(dragDelta: delta);
       }
     } else if (notification is ScrollEndNotification) {
       _isUserTouching = false;
-      _checkTrigger();
+      _queueFrameUpdate(checkTrigger: true);
     }
 
     return false;
@@ -227,9 +269,10 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    final progress = (widget.threshold > 0)
-        ? (_dragOffset / widget.threshold).clamp(0.0, 1.0)
-        : 0.0;
+    final progress =
+        (widget.threshold > 0)
+            ? (_dragOffset / widget.threshold).clamp(0.0, 1.0)
+            : 0.0;
 
     // Resting position when pinned (e.g. 14px below top padding)
     final restingTop = topPadding + widget.topDisplacement;
@@ -271,11 +314,11 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
           },
           onPointerUp: (_) {
             _isUserTouching = false;
-            _checkTrigger();
+            _queueFrameUpdate(checkTrigger: true);
           },
           onPointerCancel: (_) {
             _isUserTouching = false;
-            _checkTrigger();
+            _queueFrameUpdate(checkTrigger: true);
           },
           child: NotificationListener<ScrollNotification>(
             onNotification: _handleScrollNotification,
@@ -310,18 +353,20 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: _isSuccess
-              ? const Color(0xFF10B981).withValues(alpha: 0.5)
-              : _isArmed
+          color:
+              _isSuccess
+                  ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                  : _isArmed
                   ? const Color(0xFFFE961D).withValues(alpha: 0.55)
                   : const Color(0xFFE2E8F0),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: _isSuccess
-                ? const Color(0x3310B981)
-                : _isArmed
+            color:
+                _isSuccess
+                    ? const Color(0x3310B981)
+                    : _isArmed
                     ? const Color(0x40FE961D)
                     : Colors.black.withValues(alpha: 0.14),
             blurRadius: 16,
@@ -341,9 +386,7 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
           SizedBox(
             width: 26,
             height: 26,
-            child: Center(
-              child: _buildIndicator(progress),
-            ),
+            child: Center(child: _buildIndicator(progress)),
           ),
           const SizedBox(width: 9),
           // Dynamic Status Text
@@ -351,9 +394,10 @@ class _ArtechPullToRefreshState extends State<ArtechPullToRefresh>
             _getStatusText(),
             style: TextStyle(
               fontSize: 12.0,
-              fontWeight: (_isArmed || _isRefreshing || _isSuccess)
-                  ? FontWeight.w700
-                  : FontWeight.w600,
+              fontWeight:
+                  (_isArmed || _isRefreshing || _isSuccess)
+                      ? FontWeight.w700
+                      : FontWeight.w600,
               color: _getTextColor(),
               letterSpacing: 0.2,
             ),

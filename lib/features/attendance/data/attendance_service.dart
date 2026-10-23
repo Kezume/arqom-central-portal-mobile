@@ -22,6 +22,7 @@ class AttendanceService {
         uri,
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 12));
@@ -82,6 +83,7 @@ class AttendanceService {
         uri,
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 15));
@@ -143,6 +145,7 @@ class AttendanceService {
         uri,
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 15));
@@ -172,6 +175,7 @@ class AttendanceService {
         uri,
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 12));
@@ -217,6 +221,7 @@ class AttendanceService {
         uri,
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 12));
@@ -259,6 +264,7 @@ class AttendanceService {
         uri,
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 15));
@@ -301,6 +307,7 @@ class AttendanceService {
         uri,
         headers: {
           'Accept': 'text/csv, application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 20));

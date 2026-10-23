@@ -145,11 +145,12 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
 
     if (confirmed == true) {
-      if (mounted)
+      if (mounted) {
         ArtechLoadingWidget.showLoadingDialog(
           context,
           message: 'Membatalkan pengajuan...',
         );
+      }
       final res = await RequestsService.cancelRequest(item.id);
       if (!mounted) return;
       ArtechLoadingWidget.hideLoadingDialog(context);
@@ -311,11 +312,12 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
 
     if (confirmed == true) {
-      if (mounted)
+      if (mounted) {
         ArtechLoadingWidget.showLoadingDialog(
           context,
           message: 'Menyetujui pengajuan...',
         );
+      }
       final res = await RequestsService.approveRequest(
         item.id,
         note: noteController.text.trim(),
@@ -410,11 +412,12 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
 
     if (confirmed == true) {
-      if (mounted)
+      if (mounted) {
         ArtechLoadingWidget.showLoadingDialog(
           context,
           message: 'Menolak pengajuan...',
         );
+      }
       final res = await RequestsService.rejectRequest(
         item.id,
         note: noteController.text.trim(),
@@ -443,7 +446,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
       builder:
           (ctx) => Container(
             decoration: const BoxDecoration(
-              color: AppColors.surface,
+              color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -457,7 +460,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.outlineVariant,
+                        color: const Color(0xFFCBD5E1),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -468,17 +471,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.08),
+                        color: const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.blue.withValues(alpha: 0.3),
-                        ),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
                       ),
                       child: Row(
                         children: [
                           const Icon(
                             Icons.group_outlined,
-                            color: Colors.blue,
+                            color: Color(0xFF1D4ED8),
                             size: 20,
                           ),
                           const SizedBox(width: 10),
@@ -490,18 +491,18 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                   item.requestType == 'lembur'
                                       ? 'Lembur Tim / Kelompok'
                                       : 'Perjalanan Dinas Kelompok',
-                                  style: const TextStyle(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1D4ED8),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'Anda terdaftar sebagai peserta oleh pembuat pengajuan (${item.employee?.name ?? "-"}). Pembatalan hanya dapat dilakukan oleh pembuat pengajuan.',
-                                  style: const TextStyle(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
-                                    color: AppColors.onSurfaceVariant,
+                                    color: const Color(0xFF64748B),
                                   ),
                                 ),
                               ],
@@ -511,6 +512,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       ),
                     ),
                   ],
+                  // Header Row
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -520,6 +522,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         decoration: BoxDecoration(
                           color: item.typeColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: item.typeColor.withValues(alpha: 0.25),
+                          ),
                         ),
                         child: Icon(
                           item.typeIcon,
@@ -534,17 +539,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
                           children: [
                             Text(
                               item.typeLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w700,
                                 fontSize: 15,
+                                color: const Color(0xFF0F172A),
                               ),
                             ),
-                            Text(
-                              item.requestNumber,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.onSurfaceVariant,
-                              ),
+                            const SizedBox(height: 1.5),
+                            _buildRequestReferenceLine(
+                              item,
+                              numberFontSize: 11,
+                              dateFontSize: 10.5,
                             ),
                           ],
                         ),
@@ -555,195 +560,140 @@ class _RequestsScreenState extends State<RequestsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: item.statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          color: item.statusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: item.statusColor.withValues(alpha: 0.25),
+                          ),
                         ),
                         child: Text(
                           item.effectiveDisplayStatus,
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             color: item.statusColor,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
 
-                  // Detail Section
-                  const Text(
-                    'Keterangan / Alasan:',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.outline,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.description,
-                    style: const TextStyle(fontSize: 13, height: 1.4),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Waktu & Tanggal
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                  // Employee Info (if present and not current owner)
+                  if (item.employee != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
                         children: [
-                          const Icon(
-                            Icons.calendar_today_outlined,
-                            size: 14,
-                            color: AppColors.primary,
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: const Color(0xFFEFF6FF),
+                            child: Text(
+                              item.employee!.name.isNotEmpty
+                                  ? item.employee!.name[0].toUpperCase()
+                                  : 'E',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0037B0),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            item.endDate != null &&
-                                    item.endDate != item.startDate
-                                ? '${item.startDate} s/d ${item.endDate}'
-                                : item.startDate,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.employee!.name,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                Text(
+                                  '${item.employee!.position.isNotEmpty ? item.employee!.position : "-"} • ${item.employee!.division.isNotEmpty ? item.employee!.division : "-"}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      if (item.startTime != null && item.endTime != null)
-                        Text(
-                          '(${item.startTime} - ${item.endTime})',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 14),
+
+                  // Standardized Metadata Chips Row
+                  _buildMetaChipsRow(item),
+
+                  const SizedBox(height: 16),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 14),
+
+                  // Detail Section: Description / Reason
+                  Text(
+                    'KETERANGAN / ALASAN',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      item.description.isNotEmpty
+                          ? item.description
+                          : 'Tidak ada keterangan tambahan.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5,
+                        height: 1.45,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
                   ),
 
-                  if (item.location != null && item.location!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 14,
-                          color: AppColors.tertiary,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            item.location!,
-                            style: const TextStyle(fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  // Tipe Waktu & Peserta Chips
-                  if (item.parsedDetails?.tipeWaktu != null ||
-                      item.parsedDetails?.tipePeserta != null) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        if (item.parsedDetails?.tipeWaktu != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceContainerHigh,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.schedule,
-                                  size: 12,
-                                  color: AppColors.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  item.parsedDetails!.tipeWaktu == 'menginap'
-                                      ? 'Menginap'
-                                      : 'Harian (PP)',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (item.parsedDetails?.tipePeserta != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceContainerHigh,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.people_outline,
-                                  size: 12,
-                                  color: AppColors.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  item.parsedDetails!.tipePeserta == 'kelompok'
-                                      ? 'Kelompok'
-                                      : 'Individu',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-
-                  // Daftar Peserta Dinas
+                  // Daftar Peserta Dinas / Lembur
                   if (item.parsedDetails?.peserta.isNotEmpty == true) ...[
                     const SizedBox(height: 14),
                     Text(
-                      'Daftar Peserta (${item.parsedDetails!.peserta.length} Pegawai):',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.outline,
+                      'DAFTAR PESERTA (${item.parsedDetails!.peserta.length} PEGAWAI)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLowest,
+                        color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.outlineVariant.withValues(
-                            alpha: 0.3,
-                          ),
-                        ),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
                         children:
@@ -757,16 +707,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                       children: [
                                         CircleAvatar(
                                           radius: 12,
-                                          backgroundColor:
-                                              AppColors.primaryContainer,
+                                          backgroundColor: const Color(
+                                            0xFFEFF6FF,
+                                          ),
                                           child: Text(
                                             p.name.isNotEmpty
                                                 ? p.name[0].toUpperCase()
                                                 : '?',
-                                            style: const TextStyle(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
-                                              color: AppColors.primary,
+                                              color: const Color(0xFF0037B0),
                                             ),
                                           ),
                                         ),
@@ -778,19 +729,25 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                             children: [
                                               Text(
                                                 p.name,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: const Color(
+                                                        0xFF0F172A,
+                                                      ),
+                                                    ),
                                               ),
                                               Text(
                                                 '${p.position.isNotEmpty ? p.position : "-"} • ${p.division.isNotEmpty ? p.division : "-"}',
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  color:
-                                                      AppColors
-                                                          .onSurfaceVariant,
-                                                ),
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      fontSize: 10,
+                                                      color: const Color(
+                                                        0xFF64748B,
+                                                      ),
+                                                    ),
                                               ),
                                             ],
                                           ),
@@ -808,26 +765,37 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   if (item.attachmentUrl != null &&
                       item.attachmentUrl!.isNotEmpty) ...[
                     const SizedBox(height: 14),
+                    Text(
+                      'LAMPIRAN DOKUMEN',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
+                        color: const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
                       ),
                       child: Row(
                         children: [
                           const Icon(
                             Icons.attach_file_rounded,
                             size: 16,
-                            color: AppColors.primary,
+                            color: Color(0xFF16A34A),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Lampiran: ${item.attachmentUrl!.split("/").last}',
-                              style: const TextStyle(
+                              'Berkas: ${item.attachmentUrl!.split("/").last}',
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: AppColors.primary,
+                                color: const Color(0xFF15803D),
                                 fontWeight: FontWeight.w600,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -890,7 +858,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                           const SizedBox(height: 6),
                           Text(
                             item.attendanceImpact!.isEffective
-                                ? 'Pengajuan telah disetujui. Kehadiran Anda pada periode ${item.attendanceImpact!.startDate ?? item.startDate} hingga ${item.attendanceImpact!.endDate ?? item.endDate ?? item.startDate} akan tercatat otomatis sebagai "${item.attendanceImpact!.effectiveStatus ?? item.typeLabel}".'
+                                ? 'Pengajuan telah disetujui. Kehadiran Anda pada periode ${_formatDateRange(item.attendanceImpact!.startDate ?? item.startDate, item.attendanceImpact!.endDate ?? item.endDate)} akan tercatat otomatis sebagai "${item.attendanceImpact!.effectiveStatus ?? item.typeLabel}".'
                                 : 'Pengajuan masih menunggu persetujuan. Status kehadiran akan diperbarui secara otomatis setelah disetujui oleh HCGA.',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
@@ -924,17 +892,19 @@ class _RequestsScreenState extends State<RequestsScreen> {
                             icon: const Icon(
                               Icons.edit_outlined,
                               size: 16,
-                              color: AppColors.primary,
+                              color: Color(0xFF0037B0),
                             ),
-                            label: const Text(
+                            label: Text(
                               'Edit Pengajuan',
-                              style: TextStyle(
-                                color: AppColors.primary,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF0037B0),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 12,
                               ),
                             ),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.primary),
+                              side: const BorderSide(color: Color(0xFFBFDBFE)),
+                              backgroundColor: const Color(0xFFEFF6FF),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -952,17 +922,19 @@ class _RequestsScreenState extends State<RequestsScreen> {
                             icon: const Icon(
                               Icons.cancel_outlined,
                               size: 16,
-                              color: AppColors.error,
+                              color: Color(0xFFDC2626),
                             ),
-                            label: const Text(
+                            label: Text(
                               'Batalkan',
-                              style: TextStyle(
-                                color: AppColors.error,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFFDC2626),
                                 fontWeight: FontWeight.bold,
+                                fontSize: 12,
                               ),
                             ),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.error),
+                              side: const BorderSide(color: Color(0xFFFECACA)),
+                              backgroundColor: const Color(0xFFFEF2F2),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -1136,53 +1108,58 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Pengajuan & Izin',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              width: 1,
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Pengajuan & Izin',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.verified_user_outlined,
-                                color: Colors.white,
-                                size: 12,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.22),
+                                width: 1,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Berjenjang',
-                                style: GoogleFonts.plusJakartaSans(
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.verified_user_outlined,
                                   color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
+                                  size: 12,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Berjenjang',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     Container(
                       width: 40,
                       height: 40,
@@ -1703,20 +1680,26 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   color: AppColors.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  'Menampilkan $showingCount dari $totalCount pengajuan',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurfaceVariant,
+                Flexible(
+                  child: Text(
+                    'Menampilkan $showingCount dari $totalCount pengajuan',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               if (isCapped) ...[
                 ElevatedButton.icon(
@@ -1742,7 +1725,6 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: onShowAll,
                   style: OutlinedButton.styleFrom(
@@ -1813,38 +1795,44 @@ class _RequestsScreenState extends State<RequestsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Buat Pengajuan Baru',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: const Color(0xFF0F172A),
+              Expanded(
+                child: Text(
+                  'Buat Pengajuan Baru',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               if (role != null && role.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 2.5,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        canElevated
-                            ? const Color(0xFFF3E8FF)
-                            : const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Akses: ${role.toUpperCase()}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2.5,
+                    ),
+                    decoration: BoxDecoration(
                       color:
                           canElevated
-                              ? const Color(0xFF7E22CE)
-                              : const Color(0xFF1D4ED8),
+                              ? const Color(0xFFF3E8FF)
+                              : const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Akses: ${role.toUpperCase()}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color:
+                            canElevated
+                                ? const Color(0xFF7E22CE)
+                                : const Color(0xFF1D4ED8),
+                      ),
                     ),
                   ),
                 ),
@@ -2283,6 +2271,399 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
   }
 
+  static String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.trim().isEmpty) return '-';
+    try {
+      final clean = dateStr.trim().split('T')[0].split(' ')[0];
+      final parts = clean.split('-');
+      if (parts.length >= 3) {
+        final year = parts[0];
+        final month = int.tryParse(parts[1]) ?? 0;
+        final day = int.tryParse(parts[2]) ?? 0;
+        const months = [
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'Mei',
+          'Jun',
+          'Jul',
+          'Agu',
+          'Sep',
+          'Okt',
+          'Nov',
+          'Des',
+        ];
+        final mStr = (month >= 1 && month <= 12) ? months[month] : parts[1];
+        return '$day $mStr $year';
+      }
+    } catch (_) {}
+    return dateStr;
+  }
+
+  static String _formatDateRange(String startDate, String? endDate) {
+    if (endDate == null ||
+        endDate.trim().isEmpty ||
+        endDate.trim() == startDate.trim()) {
+      return _formatDate(startDate);
+    }
+    try {
+      final startClean = startDate.trim().split('T')[0].split(' ')[0];
+      final endClean = endDate.trim().split('T')[0].split(' ')[0];
+      final sDt = DateTime.tryParse(startClean);
+      final eDt = DateTime.tryParse(endClean);
+      if (sDt != null && eDt != null) {
+        const months = [
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'Mei',
+          'Jun',
+          'Jul',
+          'Agu',
+          'Sep',
+          'Okt',
+          'Nov',
+          'Des',
+        ];
+        if (sDt.year == eDt.year && sDt.month == eDt.month) {
+          if (sDt.day == eDt.day) {
+            return '${sDt.day} ${months[sDt.month]} ${sDt.year}';
+          }
+          return '${sDt.day} - ${eDt.day} ${months[sDt.month]} ${sDt.year}';
+        } else if (sDt.year == eDt.year) {
+          return '${sDt.day} ${months[sDt.month]} - ${eDt.day} ${months[eDt.month]} ${sDt.year}';
+        } else {
+          return '${sDt.day} ${months[sDt.month]} ${sDt.year} - ${eDt.day} ${months[eDt.month]} ${eDt.year}';
+        }
+      }
+    } catch (_) {}
+    return '$startDate s/d $endDate';
+  }
+
+  static String? _calculateDuration(RequestItem item) {
+    if (item.requestType == 'lembur') {
+      if (item.startTime != null && item.endTime != null) {
+        try {
+          final sParts = item.startTime!.split(':');
+          final eParts = item.endTime!.split(':');
+          final sMin = int.parse(sParts[0]) * 60 + int.parse(sParts[1]);
+          final eMin = int.parse(eParts[0]) * 60 + int.parse(eParts[1]);
+          final diff = eMin - sMin;
+          if (diff > 0) {
+            final h = diff ~/ 60;
+            final m = diff % 60;
+            if (m == 0) return '$h Jam';
+            if (h == 0) return '$m Menit';
+            return '$h Jam $m Menit';
+          }
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    try {
+      final sClean = item.startDate.trim().split('T')[0].split(' ')[0];
+      final eClean =
+          (item.endDate != null && item.endDate!.trim().isNotEmpty)
+              ? item.endDate!.trim().split('T')[0].split(' ')[0]
+              : sClean;
+      final start = DateTime.tryParse(sClean);
+      final end = DateTime.tryParse(eClean);
+      if (start != null && end != null) {
+        final days = end.difference(start).inDays + 1;
+        if (days > 0) {
+          return '$days Hari';
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Widget _buildMetaChip({
+    required IconData icon,
+    required String label,
+    Color? iconColor,
+    Color? bgColor,
+    Color? textColor,
+    Color? borderColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor ?? const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: borderColor ?? const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12.5, color: iconColor ?? const Color(0xFF64748B)),
+          const SizedBox(width: 5),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: textColor ?? const Color(0xFF334155),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestReferenceLine(
+    RequestItem item, {
+    double numberFontSize = 10.5,
+    double dateFontSize = 10,
+  }) {
+    final hasSubmittedAt =
+        item.submittedAt != null && item.submittedAt!.isNotEmpty;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            item.requestNumber,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: numberFontSize,
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        if (hasSubmittedAt) ...[
+          const SizedBox(width: 6),
+          Text(
+            _formatDate(item.submittedAt),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: dateFontSize,
+              color: const Color(0xFF94A3B8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMetaChipsRow(RequestItem item) {
+    final chips = <Widget>[];
+
+    // 1. Tanggal Range
+    chips.add(
+      _buildMetaChip(
+        icon: Icons.calendar_month_rounded,
+        label: _formatDateRange(item.startDate, item.endDate),
+        iconColor: const Color(0xFF0037B0),
+        bgColor: const Color(0xFFEFF6FF),
+        borderColor: const Color(0xFFBFDBFE),
+        textColor: const Color(0xFF1E40AF),
+      ),
+    );
+
+    // 2. Durasi (Hari / Jam)
+    final duration = _calculateDuration(item);
+    if (duration != null && duration.isNotEmpty) {
+      chips.add(
+        _buildMetaChip(
+          icon: Icons.hourglass_bottom_rounded,
+          label: duration,
+          iconColor: const Color(0xFFD97706),
+          bgColor: const Color(0xFFFFFBEB),
+          borderColor: const Color(0xFFFDE68A),
+          textColor: const Color(0xFF92400E),
+        ),
+      );
+    }
+
+    // 3. Jam Kerja / Waktu Lembur / Izin
+    if (item.startTime != null &&
+        item.endTime != null &&
+        item.startTime!.trim().isNotEmpty &&
+        item.endTime!.trim().isNotEmpty) {
+      chips.add(
+        _buildMetaChip(
+          icon: Icons.schedule_rounded,
+          label: '${item.startTime} - ${item.endTime}',
+          iconColor: const Color(0xFF475569),
+        ),
+      );
+    }
+
+    // 4. Lokasi Dinas
+    if (item.location != null && item.location!.trim().isNotEmpty) {
+      chips.add(
+        _buildMetaChip(
+          icon: Icons.location_on_rounded,
+          label: item.location!.trim(),
+          iconColor: const Color(0xFF7C3AED),
+          bgColor: const Color(0xFFF5F3FF),
+          borderColor: const Color(0xFFDDD6FE),
+          textColor: const Color(0xFF6D28D9),
+        ),
+      );
+    }
+
+    // 5. Tipe Waktu Dinas (Menginap / Harian PP)
+    if (item.parsedDetails?.tipeWaktu != null &&
+        item.parsedDetails!.tipeWaktu!.trim().isNotEmpty) {
+      final isMenginap = item.parsedDetails!.tipeWaktu == 'menginap';
+      chips.add(
+        _buildMetaChip(
+          icon:
+              isMenginap ? Icons.hotel_rounded : Icons.directions_walk_rounded,
+          label: isMenginap ? 'Menginap' : 'Harian (PP)',
+          iconColor: const Color(0xFF0284C7),
+        ),
+      );
+    }
+
+    // 6. Tipe Peserta (Kelompok / Individu)
+    if (item.parsedDetails?.tipePeserta != null &&
+        item.parsedDetails!.tipePeserta!.trim().isNotEmpty) {
+      final isKelompok = item.parsedDetails!.tipePeserta == 'kelompok';
+      final pCount =
+          item.parsedDetails!.peserta.isNotEmpty
+              ? item.parsedDetails!.peserta.length
+              : item.parsedDetails!.pesertaIds.length;
+      chips.add(
+        _buildMetaChip(
+          icon:
+              isKelompok ? Icons.groups_rounded : Icons.person_outline_rounded,
+          label: isKelompok ? 'Kelompok ($pCount Orang)' : 'Individu',
+          iconColor: const Color(0xFF2563EB),
+        ),
+      );
+    } else if (item.requestType == 'lembur' &&
+        item.parsedDetails?.peserta.isNotEmpty == true) {
+      chips.add(
+        _buildMetaChip(
+          icon: Icons.groups_rounded,
+          label: 'Lembur Tim (${item.parsedDetails!.peserta.length} Pegawai)',
+          iconColor: const Color(0xFF4F46E5),
+        ),
+      );
+    }
+
+    // 7. Lampiran / Surat Dokter
+    if (item.attachmentUrl != null && item.attachmentUrl!.trim().isNotEmpty) {
+      chips.add(
+        _buildMetaChip(
+          icon: Icons.attach_file_rounded,
+          label: item.requestType == 'sakit' ? 'Surat Dokter' : 'Ada Lampiran',
+          iconColor: const Color(0xFF16A34A),
+          bgColor: const Color(0xFFF0FDF4),
+          borderColor: const Color(0xFFBBF7D0),
+          textColor: const Color(0xFF15803D),
+        ),
+      );
+    }
+
+    return Wrap(spacing: 6, runSpacing: 6, children: chips);
+  }
+
+  Widget _buildDescriptionBox(RequestItem item) {
+    final text =
+        item.description.trim().isNotEmpty
+            ? item.description.trim()
+            : 'Tidak ada keterangan tambahan.';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.notes_rounded,
+              size: 14,
+              color: Color(0xFF94A3B8),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.5,
+                color: const Color(0xFF334155),
+                height: 1.4,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceImpactBadge(RequestItem item) {
+    if (item.attendanceImpact == null ||
+        !item.attendanceImpact!.affectsAttendance) {
+      return const SizedBox.shrink();
+    }
+    final isEffective = item.attendanceImpact!.isEffective;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5.5),
+      decoration: BoxDecoration(
+        color: isEffective ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color:
+              isEffective ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isEffective ? Icons.check_circle_rounded : Icons.schedule_rounded,
+            size: 13,
+            color:
+                isEffective ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              isEffective
+                  ? 'Presensi Aktif: ${item.attendanceImpact!.effectiveStatus ?? item.typeLabel}'
+                  : 'Presensi: Otomatis tercatat setelah Disetujui (${item.attendanceImpact!.effectiveStatus ?? item.typeLabel})',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color:
+                    isEffective
+                        ? const Color(0xFF15803D)
+                        : const Color(0xFFB45309),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMyRequestCard(RequestItem item) {
     return GestureDetector(
       onTap: () => _showDetailBottomSheet(item),
@@ -2301,7 +2682,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2315,6 +2696,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     decoration: BoxDecoration(
                       color: item.typeColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(11),
+                      border: Border.all(
+                        color: item.typeColor.withValues(alpha: 0.25),
+                      ),
                     ),
                     child: Icon(item.typeIcon, color: item.typeColor, size: 20),
                   ),
@@ -2331,24 +2715,21 @@ class _RequestsScreenState extends State<RequestsScreen> {
                             color: const Color(0xFF0F172A),
                           ),
                         ),
-                        Text(
-                          item.requestNumber,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10.5,
-                            color: const Color(0xFF64748B),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        const SizedBox(height: 1.5),
+                        _buildRequestReferenceLine(item),
                         if (item.isParticipant && !item.isOwner) ...[
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
-                              vertical: 1.5,
+                              vertical: 2,
                             ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: const Color(0xFFBFDBFE),
+                              ),
                             ),
                             child: Text(
                               'Peserta Kelompok (${item.employee?.name ?? "Koordinator"})',
@@ -2363,6 +2744,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
@@ -2388,269 +2770,110 @@ class _RequestsScreenState extends State<RequestsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Date & Detail Box
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.calendar_today_outlined,
-                              size: 13,
-                              color: Color(0xFF0037B0),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              item.endDate != null &&
-                                      item.endDate != item.startDate
-                                  ? '${item.startDate} s/d ${item.endDate}'
-                                  : item.startDate,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (item.startTime != null && item.endTime != null)
-                          Text(
-                            '(${item.startTime} - ${item.endTime})',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (item.location != null && item.location!.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 13,
-                            color: Color(0xFF7C3AED),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              item.location!,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                color: const Color(0xFF475569),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (item.parsedDetails?.tipePeserta != null ||
-                        item.parsedDetails?.tipeWaktu != null) ...[
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          if (item.parsedDetails?.tipeWaktu != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                item.parsedDetails!.tipeWaktu == 'menginap'
-                                    ? 'Menginap'
-                                    : 'Harian (PP)',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF475569),
-                                ),
-                              ),
-                            ),
-                          if (item.parsedDetails?.tipePeserta != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                item.parsedDetails!.tipePeserta == 'kelompok'
-                                    ? 'Kelompok (${item.parsedDetails!.peserta.length} Orang)'
-                                    : 'Individu',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF475569),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Text(
-                      item.description,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: const Color(0xFF334155),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Attendance Impact Badge
-              if (item.attendanceImpact != null &&
-                  item.attendanceImpact!.affectsAttendance) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        item.attendanceImpact!.isEffective
-                            ? const Color(0xFFF0FDF4)
-                            : const Color(0xFFFFFBEB),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color:
-                          item.attendanceImpact!.isEffective
-                              ? const Color(0xFFBBF7D0)
-                              : const Color(0xFFFDE68A),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        item.attendanceImpact!.isEffective
-                            ? Icons.event_available_rounded
-                            : Icons.schedule_rounded,
-                        size: 13,
-                        color:
-                            item.attendanceImpact!.isEffective
-                                ? const Color(0xFF16A34A)
-                                : const Color(0xFFD97706),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          item.attendanceImpact!.isEffective
-                              ? 'Absensi Aktif: ${item.attendanceImpact!.effectiveStatus ?? item.typeLabel}'
-                              : 'Absensi: Otomatis aktif setelah Disetujui (${item.attendanceImpact!.effectiveStatus ?? item.typeLabel})',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                item.attendanceImpact!.isEffective
-                                    ? const Color(0xFF15803D)
-                                    : const Color(0xFFB45309),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              // Standardized Metadata Chips Row
+              _buildMetaChipsRow(item),
+              const SizedBox(height: 8),
 
-              const SizedBox(height: 12),
+              // Description Box
+              _buildDescriptionBox(item),
+
+              // Attendance Impact
+              _buildAttendanceImpactBadge(item),
+
+              const SizedBox(height: 10),
 
               // Approval Flow Steps
               _buildApprovalTimeline(item),
 
-              // Actions: Edit & Cancel
-              if (item.canCancel && item.isOwner) ...[
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () => _handleEditRequest(item),
-                      icon: const Icon(
-                        Icons.edit_outlined,
-                        size: 13,
-                        color: Color(0xFF0037B0),
-                      ),
-                      label: Text(
-                        'Edit',
+              // Actions or Detail Hint Footer
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Rincian',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: const Color(0xFF0037B0),
-                          fontWeight: FontWeight.w700,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF94A3B8),
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFBFDBFE)),
-                        backgroundColor: const Color(0xFFEFF6FF),
-                        visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 14,
+                        color: Color(0xFF94A3B8),
                       ),
+                    ],
+                  ),
+                  if (item.canCancel && item.isOwner)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _handleEditRequest(item),
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            size: 13,
+                            color: Color(0xFF0037B0),
+                          ),
+                          label: Text(
+                            'Edit',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: const Color(0xFF0037B0),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFBFDBFE)),
+                            backgroundColor: const Color(0xFFEFF6FF),
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        OutlinedButton.icon(
+                          onPressed: () => _handleCancelRequest(item),
+                          icon: const Icon(
+                            Icons.cancel_outlined,
+                            size: 13,
+                            color: Color(0xFFDC2626),
+                          ),
+                          label: Text(
+                            'Batalkan',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: const Color(0xFFDC2626),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFFECACA)),
+                            backgroundColor: const Color(0xFFFEF2F2),
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    OutlinedButton.icon(
-                      onPressed: () => _handleCancelRequest(item),
-                      icon: const Icon(
-                        Icons.cancel_outlined,
-                        size: 13,
-                        color: Color(0xFFDC2626),
-                      ),
-                      label: Text(
-                        'Batalkan',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: const Color(0xFFDC2626),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFFECACA)),
-                        backgroundColor: const Color(0xFFFEF2F2),
-                        visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ],
           ),
         ),
@@ -2864,16 +3087,21 @@ class _RequestsScreenState extends State<RequestsScreen> {
           list.where((item) {
             final type = item.requestType.toLowerCase();
             final label = item.typeLabel.toLowerCase();
-            if (filter == 'cuti')
+            if (filter == 'cuti') {
               return type.contains('cuti') || label.contains('cuti');
-            if (filter == 'izin')
+            }
+            if (filter == 'izin') {
               return type.contains('izin') || label.contains('izin');
-            if (filter == 'sakit')
+            }
+            if (filter == 'sakit') {
               return type.contains('sakit') || label.contains('sakit');
-            if (filter == 'lembur')
+            }
+            if (filter == 'lembur') {
               return type.contains('lembur') || label.contains('lembur');
-            if (filter == 'dinas')
+            }
+            if (filter == 'dinas') {
               return type.contains('dinas') || label.contains('dinas');
+            }
             return type.contains(filter) || label.contains(filter);
           }).toList();
     }
@@ -3005,197 +3233,177 @@ class _RequestsScreenState extends State<RequestsScreen> {
   }
 
   Widget _buildApprovalCard(RequestItem item) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Employee Info Header
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 19,
-                  backgroundColor: const Color(0xFFEFF6FF),
-                  child: Text(
-                    (item.employee?.name.isNotEmpty == true)
-                        ? item.employee!.name[0].toUpperCase()
-                        : 'E',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0037B0),
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.employee?.name ?? 'Nama Karyawan',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      Text(
-                        '${item.employee?.position ?? "-"} • ${item.employee?.division ?? "-"}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5,
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3.5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: item.typeColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: item.typeColor.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: Text(
-                    item.typeLabel,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: item.typeColor,
-                    ),
-                  ),
-                ),
-              ],
+    return GestureDetector(
+      onTap: () => _showDetailBottomSheet(item),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            const SizedBox(height: 12),
-
-            // Date & Reason Details
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Employee Info Header
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.calendar_month_rounded,
-                        size: 14,
-                        color: Color(0xFF0037B0),
+                  CircleAvatar(
+                    radius: 19,
+                    backgroundColor: const Color(0xFFEFF6FF),
+                    child: Text(
+                      (item.employee?.name.isNotEmpty == true)
+                          ? item.employee!.name[0].toUpperCase()
+                          : 'E',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0037B0),
+                        fontSize: 14,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        item.endDate != null && item.endDate != item.startDate
-                            ? '${item.startDate} s/d ${item.endDate}'
-                            : item.startDate,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.description,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.5,
-                      color: const Color(0xFF334155),
-                      height: 1.35,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.employee?.name ?? 'Nama Karyawan',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        Text(
+                          '${item.employee?.position ?? "-"} • ${item.employee?.division ?? "-"}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10.5,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 1.5),
+                        _buildRequestReferenceLine(item, numberFontSize: 10),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: item.typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: item.typeColor.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(item.typeIcon, size: 11, color: item.typeColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          item.typeLabel,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: item.typeColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
-            // Approve & Reject Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _handleReject(item),
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      size: 16,
-                      color: Color(0xFFDC2626),
-                    ),
-                    label: Text(
-                      'Tolak',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: const Color(0xFFDC2626),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+              // Standardized Metadata Chips Row
+              _buildMetaChipsRow(item),
+              const SizedBox(height: 8),
+
+              // Description Box
+              _buildDescriptionBox(item),
+
+              // Attendance Impact
+              _buildAttendanceImpactBadge(item),
+
+              const SizedBox(height: 12),
+
+              // Approve & Reject Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleReject(item),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 15,
+                        color: Color(0xFFDC2626),
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFFECACA)),
-                      backgroundColor: const Color(0xFFFEF2F2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                      label: Text(
+                        'Tolak',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFFDC2626),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFFECACA)),
+                        backgroundColor: const Color(0xFFFEF2F2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleApprove(item),
-                    icon: const Icon(
-                      Icons.check_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      'Setujui',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _handleApprove(item),
+                      icon: const Icon(
+                        Icons.check_rounded,
+                        size: 15,
                         color: Colors.white,
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                      label: Text(
+                        'Setujui',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      elevation: 0,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF16A34A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        elevation: 0,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

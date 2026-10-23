@@ -93,6 +93,7 @@ class AuthService {
             Uri.parse('$baseUrl/me'),
             headers: {
               'Accept': 'application/json',
+              'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
             },
           )
@@ -125,6 +126,7 @@ class AuthService {
               Uri.parse('$baseUrl/logout'),
               headers: {
                 'Accept': 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': 'Bearer $token',
               },
             )

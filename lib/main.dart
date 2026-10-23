@@ -5,6 +5,11 @@ import 'core/theme/app_theme.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'features/notifications/data/push_notification_service.dart';
 
+import 'features/performance/presentation/performance_screen.dart';
+import 'features/agenda/presentation/agenda_list_screen.dart';
+import 'features/agenda/presentation/agenda_detail_screen.dart';
+import 'features/requests/presentation/requests_screen.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -38,6 +43,23 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
+      routes: {
+        '/daily-logbook': (context) => const PerformanceScreen(initialTabIndex: 2),
+        '/agendas': (context) => const AgendaListScreen(),
+        '/requests': (context) => const RequestsScreen(),
+        '/performance': (context) => const PerformanceScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/agenda-detail') {
+          final args = settings.arguments;
+          if (args is int) {
+            return MaterialPageRoute(
+              builder: (_) => AgendaDetailScreen(agendaId: args),
+            );
+          }
+        }
+        return null;
+      },
     );
   }
 }

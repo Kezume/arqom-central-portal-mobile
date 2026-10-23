@@ -4,15 +4,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/artech_loading_widget.dart';
 import '../../data/models/performance_models.dart';
 import '../../data/performance_service.dart';
+import 'performance_paginated_list.dart';
 import 'target_form_modal.dart';
 
 class MonthlyTargetTab extends StatefulWidget {
   final VoidCallback onDataChanged;
 
-  const MonthlyTargetTab({
-    super.key,
-    required this.onDataChanged,
-  });
+  const MonthlyTargetTab({super.key, required this.onDataChanged});
 
   @override
   State<MonthlyTargetTab> createState() => _MonthlyTargetTabState();
@@ -22,6 +20,8 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
   bool _isLoading = true;
   String? _errorMessage;
   MonthlyTargetData? _targetData;
+  int _requestSerial = 0;
+  final Set<int> _deletingTargetIds = {};
 
   int? _selectedYear;
   String? _selectedPeriod;
@@ -36,6 +36,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
   }
 
   Future<void> _fetchData({bool silent = false}) async {
+    final requestSerial = ++_requestSerial;
     if (!silent) {
       setState(() {
         _isLoading = true;
@@ -48,44 +49,40 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
       period: _selectedPeriod,
     );
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        if (res.success && res.data != null) {
-          _targetData = res.data;
-          _selectedYear = res.data!.year;
-          _selectedPeriod = res.data!.currentPeriod;
-          // By default expand all main targets for clear visibility
-          for (final t in res.data!.targets) {
-            _expandedTargetIds.add(t.id);
-          }
-        } else {
-          _errorMessage = res.message;
-        }
-      });
-    }
+    if (!mounted || requestSerial != _requestSerial) return;
+
+    setState(() {
+      _isLoading = false;
+      if (res.success && res.data != null) {
+        _targetData = res.data;
+        _selectedYear = res.data!.year;
+        _selectedPeriod = res.data!.currentPeriod;
+        final activeIds = res.data!.targets.map((target) => target.id).toSet();
+        _expandedTargetIds.removeWhere((id) => !activeIds.contains(id));
+      } else {
+        _errorMessage = res.message;
+      }
+    });
   }
 
-  void _openAddModal({
-    String? level,
-    int? parentId,
-  }) {
+  void _openAddModal({String? level, int? parentId}) {
     if (_targetData == null) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => TargetFormModal(
-        currentYear: _selectedYear ?? DateTime.now().year,
-        currentPeriod: _selectedPeriod ?? '',
-        availableParents: _targetData!.targets,
-        preselectedLevel: level,
-        preselectedParentId: parentId,
-        onSuccess: () {
-          _fetchData();
-          widget.onDataChanged();
-        },
-      ),
+      builder:
+          (ctx) => TargetFormModal(
+            currentYear: _selectedYear ?? DateTime.now().year,
+            currentPeriod: _selectedPeriod ?? '',
+            availableParents: _targetData!.targets,
+            preselectedLevel: level,
+            preselectedParentId: parentId,
+            onSuccess: () {
+              _fetchData();
+              widget.onDataChanged();
+            },
+          ),
     );
   }
 
@@ -95,17 +92,97 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => TargetFormModal(
-        currentYear: _selectedYear ?? DateTime.now().year,
-        currentPeriod: _selectedPeriod ?? '',
-        availableParents: _targetData!.targets,
-        initialTarget: target,
-        onSuccess: () {
-          _fetchData();
-          widget.onDataChanged();
-        },
-      ),
+      builder:
+          (ctx) => TargetFormModal(
+            currentYear: _selectedYear ?? DateTime.now().year,
+            currentPeriod: _selectedPeriod ?? '',
+            availableParents: _targetData!.targets,
+            initialTarget: target,
+            onSuccess: () {
+              _fetchData();
+              widget.onDataChanged();
+            },
+          ),
     );
+  }
+
+  Future<void> _confirmDeleteTarget(MonthlyTargetItem target) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Hapus Target?',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Target "${target.title}" beserta seluruh rincian target di bawahnya akan dihapus dari daftar aktif. Data yang terhubung akan disesuaikan otomatis.',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                color: const Color(0xFF475569),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Hapus Target'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true && mounted) {
+      if (_deletingTargetIds.contains(target.id)) return;
+      setState(() => _deletingTargetIds.add(target.id));
+      final res = await PerformanceService.deleteMonthlyTarget(target.id);
+      if (!mounted) return;
+
+      setState(() => _deletingTargetIds.remove(target.id));
+
+      if (res.success) {
+        _fetchData();
+        widget.onDataChanged();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Color _getStatusColor(String status) {
@@ -150,9 +227,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return ArtechLoadingWidget.page(
-        message: 'Memuat target bulanan...',
-      );
+      return ArtechLoadingWidget.page(message: 'Memuat target bulanan...');
     }
 
     if (_errorMessage != null) {
@@ -204,28 +279,15 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
         Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hierarki Target',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  Text(
-                    'Main ➔ Weekly ➔ Daily Target',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFF64748B),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Target Bulanan (${data.targets.length})',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: const Color(0xFF0F172A),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -233,15 +295,23 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
               onPressed: () => _openAddModal(),
               icon: const Icon(Icons.add, size: 16),
               label: Text(
-                'Tambah Target',
-                style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700),
+                'Tambah',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0037B0),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
@@ -252,7 +322,15 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
         if (data.targets.isEmpty)
           _buildEmptyState()
         else
-          ...data.targets.map((mainTarget) => _buildMainTargetCard(mainTarget)),
+          PerformancePaginatedList<MonthlyTargetItem>(
+            items: data.targets,
+            resetKey: '${data.year}-${data.currentPeriod}',
+            spacing: 0,
+            itemLabel: 'target',
+            itemBuilder:
+                (context, mainTarget, index) =>
+                    _buildMainTargetCard(mainTarget),
+          ),
       ],
     );
   }
@@ -274,7 +352,11 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.calendar_month_rounded, color: Color(0xFF0037B0), size: 20),
+          const Icon(
+            Icons.calendar_month_rounded,
+            color: Color(0xFF0037B0),
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Text(
             'Periode:',
@@ -289,24 +371,25 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 isExpanded: true,
-                value: data.availablePeriods.contains(_selectedPeriod)
-                    ? _selectedPeriod
-                    : (data.availablePeriods.isNotEmpty ? data.availablePeriods.first : null),
+                value:
+                    data.availablePeriods.contains(_selectedPeriod)
+                        ? _selectedPeriod
+                        : (data.availablePeriods.isNotEmpty
+                            ? data.availablePeriods.first
+                            : null),
                 isDense: true,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF0F172A),
                 ),
-                items: data.availablePeriods.map((period) {
-                  return DropdownMenuItem<String>(
-                    value: period,
-                    child: Text(
-                      period,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
+                items:
+                    data.availablePeriods.map((period) {
+                      return DropdownMenuItem<String>(
+                        value: period,
+                        child: Text(period, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
                 onChanged: (val) {
                   if (val != null && val != _selectedPeriod) {
                     setState(() {
@@ -330,10 +413,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF0037B0),
-            Color(0xFF155DFC),
-          ],
+          colors: [Color(0xFF0037B0), Color(0xFF155DFC)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -366,7 +446,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -472,10 +555,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withValues(alpha: 0.04),
@@ -513,7 +593,11 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                           color: const Color(0xFF0037B0).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.flag_rounded, color: Color(0xFF0037B0), size: 18),
+                        child: const Icon(
+                          Icons.flag_rounded,
+                          color: Color(0xFF0037B0),
+                          size: 18,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -527,13 +611,18 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0037B0).withValues(alpha: 0.08),
+                                    color: const Color(
+                                      0xFF0037B0,
+                                    ).withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    'MAIN TARGET',
+                                    'UTAMA',
                                     style: GoogleFonts.plusJakartaSans(
                                       color: const Color(0xFF0037B0),
                                       fontSize: 9,
@@ -543,9 +632,14 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: priorityColor.withValues(alpha: 0.12),
+                                    color: priorityColor.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
@@ -558,7 +652,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: statusColor.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
@@ -586,22 +683,60 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF64748B)),
-                        onPressed: () => _openEditModal(main),
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(),
+                      PopupMenuButton<String>(
+                        tooltip: 'Aksi target',
+                        icon: const Icon(
+                          Icons.more_vert_rounded,
+                          size: 20,
+                          color: Color(0xFF64748B),
+                        ),
+                        onSelected: (action) {
+                          if (action == 'edit') {
+                            _openEditModal(main);
+                          } else if (action == 'delete') {
+                            _confirmDeleteTarget(main);
+                          }
+                        },
+                        itemBuilder:
+                            (context) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(Icons.edit_outlined, size: 18),
+                                  title: Text('Ubah target'),
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 18,
+                                    color: AppColors.error,
+                                  ),
+                                  title: Text(
+                                    'Hapus target',
+                                    style: TextStyle(color: AppColors.error),
+                                  ),
+                                ),
+                              ),
+                            ],
                       ),
-                      const SizedBox(width: 2),
                       Icon(
-                        isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
                         color: const Color(0xFF64748B),
                         size: 22,
                       ),
                     ],
                   ),
-                  if (main.expectedResults != null && main.expectedResults!.isNotEmpty) ...[
+                  if (main.expectedResults != null &&
+                      main.expectedResults!.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -613,12 +748,19 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.check_circle_outline, size: 14, color: AppColors.secondary),
+                          const Icon(
+                            Icons.check_circle_outline,
+                            size: 14,
+                            color: AppColors.secondary,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'Hasil diharapkan: ${main.expectedResults}',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: const Color(0xFF64748B),
+                              ),
                             ),
                           ),
                         ],
@@ -629,14 +771,22 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.person_outline, size: 14, color: Color(0xFF64748B)),
+                        const Icon(
+                          Icons.person_outline,
+                          size: 14,
+                          color: Color(0xFF64748B),
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             'PIC: ${main.picName}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: const Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
@@ -666,7 +816,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Weekly Target (${main.children.length})',
+                          'Target Mingguan (${main.children.length})',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -677,16 +827,26 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                         ),
                       ),
                       TextButton.icon(
-                        onPressed: () => _openAddModal(level: 'weekly', parentId: main.id),
+                        onPressed:
+                            () => _openAddModal(
+                              level: 'weekly',
+                              parentId: main.id,
+                            ),
                         icon: const Icon(Icons.add, size: 14),
                         label: Text(
                           'Tambah Pekanan',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF0037B0),
                           visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                         ),
                       ),
                     ],
@@ -705,7 +865,9 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       ),
                     )
                   else
-                    ...main.children.map((weekly) => _buildWeeklyTargetTile(weekly)),
+                    ...main.children.map(
+                      (weekly) => _buildWeeklyTargetTile(weekly),
+                    ),
                 ],
               ),
             ),
@@ -763,7 +925,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
                                   color: priorityColor.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(4),
@@ -778,7 +943,10 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
                                   color: statusColor.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(4),
@@ -799,7 +967,23 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                           onTap: () => _openEditModal(weekly),
                           child: const Padding(
                             padding: EdgeInsets.all(4),
-                            child: Icon(Icons.edit, size: 14, color: Color(0xFF64748B)),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () => _confirmDeleteTarget(weekly),
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              size: 14,
+                              color: AppColors.error,
+                            ),
                           ),
                         ),
                       ],
@@ -813,18 +997,26 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                         color: const Color(0xFF0F172A),
                       ),
                     ),
-                    if (weekly.startDate != null || weekly.deadline != null) ...[
+                    if (weekly.startDate != null ||
+                        weekly.deadline != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today, size: 11, color: Color(0xFF94A3B8)),
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 11,
+                            color: Color(0xFF94A3B8),
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               '${weekly.startDate ?? '-'} s/d ${weekly.deadline ?? '-'}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                color: const Color(0xFF64748B),
+                              ),
                             ),
                           ),
                         ],
@@ -853,7 +1045,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Daily Targets (${weekly.children.length})',
+                          'Target Harian (${weekly.children.length})',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
@@ -864,9 +1056,16 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                         ),
                       ),
                       InkWell(
-                        onTap: () => _openAddModal(level: 'daily', parentId: weekly.id),
+                        onTap:
+                            () => _openAddModal(
+                              level: 'daily',
+                              parentId: weekly.id,
+                            ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           child: Text(
                             '+ Harian',
                             style: GoogleFonts.plusJakartaSans(
@@ -886,26 +1085,40 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Row(
                         children: [
-                          const Icon(Icons.subdirectory_arrow_right, size: 12, color: Color(0xFF94A3B8)),
+                          const Icon(
+                            Icons.subdirectory_arrow_right,
+                            size: 12,
+                            color: Color(0xFF94A3B8),
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               daily.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF0F172A)),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: const Color(0xFF0F172A),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: dStatusColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               _getStatusLabel(daily.status),
-                              style: GoogleFonts.plusJakartaSans(fontSize: 8, color: dStatusColor, fontWeight: FontWeight.w700),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 8,
+                                color: dStatusColor,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -913,7 +1126,23 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                             onTap: () => _openEditModal(daily),
                             child: const Padding(
                               padding: EdgeInsets.all(2),
-                              child: Icon(Icons.edit_outlined, size: 12, color: Color(0xFF94A3B8)),
+                              child: Icon(
+                                Icons.edit_outlined,
+                                size: 12,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          InkWell(
+                            onTap: () => _confirmDeleteTarget(daily),
+                            child: const Padding(
+                              padding: EdgeInsets.all(2),
+                              child: Icon(
+                                Icons.delete_outline_rounded,
+                                size: 12,
+                                color: AppColors.error,
+                              ),
                             ),
                           ),
                         ],
@@ -932,7 +1161,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text(
-                    '+ Tambah Daily Target',
+                    '+ Tambah Target Harian',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       color: const Color(0xFF0037B0),
@@ -954,19 +1183,21 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: Column(
         children: [
           const Icon(Icons.track_changes, size: 48, color: AppColors.outline),
           const SizedBox(height: 12),
           const Text(
-            'Belum ada Target Bulanan',
+            'Belum ada target',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 4),
           const Text(
-            'Mulai dengan menambahkan Target Utama (Main Target) untuk periode ini.',
+            'Mulai dengan membuat target utama.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
           ),
@@ -974,7 +1205,7 @@ class _MonthlyTargetTabState extends State<MonthlyTargetTab> {
           ElevatedButton.icon(
             onPressed: () => _openAddModal(level: 'main'),
             icon: const Icon(Icons.add, size: 16),
-            label: const Text('Tambah Target Utama', style: TextStyle(fontSize: 12)),
+            label: const Text('Buat Target', style: TextStyle(fontSize: 12)),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,

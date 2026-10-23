@@ -2,9 +2,9 @@
 
 Panduan integrasi REST API Central Portal untuk pengembang aplikasi mobile (**Flutter**, **React Native**, **Kotlin/Android**, atau **Swift/iOS**).
 
-**Terakhir diperbarui:** 20 Oktober 2026
+**Terakhir diperbarui:** 22 Oktober 2026
 
-**Perubahan:** penyesuaian kontrak login, penegasan penghentian absensi berbasis selfie/lokasi, penambahan endpoint ringkasan absensi, implementasi penuh API Daily Task/Logbook Harian, aturan kesetaraan modul Kinerja dengan web, serta dokumentasi SOP/Dokumen.
+**Perubahan:** penyesuaian kontrak login, penegasan penghentian absensi berbasis selfie/lokasi, penambahan endpoint ringkasan absensi, implementasi penuh API Daily Task/Logbook Harian, sinkronisasi penghapusan dan deadline Weekly Target–Daily Task, dukungan kolom Sabtu/Minggu dinamis, pengamanan kepemilikan kolom Kanban, aturan kesetaraan modul Kinerja dengan web, serta dokumentasi SOP/Dokumen.
 
 **Acuan utama implementasi mobile:** file Markdown ini (`MOBILE_API_DOCUMENTATION.md`). Spesifikasi OpenAPI/YAML bersifat pelengkap teknis dan harus mengikuti keputusan bisnis dalam dokumen ini.
 
@@ -595,8 +595,8 @@ Mobile harus memakai aturan bisnis dan sumber data yang sama dengan halaman web.
 | Hapus Target Bulanan | Siap | Soft-delete target, turunannya, dan proyeksi Weekly Plan; hanya pemilik/admin. |
 | Baca Weekly Plan | Siap | Menggunakan rencana mingguan yang sama dengan web. |
 | Tambah/ubah Weekly Plan | Belum boleh diaktifkan di production | Backend API perlu menyinkronkan Daily Logbook, perpindahan pekan, subtask, dan perlindungan item yang bersumber dari Monthly Target. |
-| Hapus item Weekly Plan mandiri | Siap | Item sumber Target Bulanan/Daily Task dan plan terkunci ditolak. |
-| Daily Task / Logbook Harian | Siap | Daftar, detail, tambah, ubah, status, carry forward, dan hapus memakai data yang sama dengan web. |
+| Hapus item Weekly Plan mandiri | Siap | Item sumber Target Bulanan/Daily Task dan plan terkunci ditolak; Target Harian manual menghapus kartu Daily Task pasangannya. |
+| Daily Task / Logbook Harian | Siap | Daftar, detail, tambah, ubah, status, carry forward, hapus, dan sinkronisasi deadline memakai data yang sama dengan web. |
 | Weekly Review | Siap | Validasi dan perhitungan progres telah mengikuti alur web. |
 
 Scope versi ini mencakup tiga menu di atas serta alur utama Daily Task/Logbook Harian. Dashboard Kinerja, OKR, KPI, Monthly Planning, Work Program, pengelolaan kolom Kanban, laporan mingguan/bulanan, dan workflow penguncian yang tersedia di web belum menjadi kontrak API mobile dalam dokumen ini.
@@ -835,9 +835,11 @@ Mengubah informasi perencanaan aktivitas (judul, target tanggal, prioritas, kete
 * **Endpoint**: `DELETE /api/performance/weekly-plan/items/{item}`
 * **Aturan**:
   - Hanya pemilik Weekly Plan atau administrator yang dapat menghapus.
-  - Plan yang terkunci tidak dapat diubah oleh pengguna biasa.
-  - Item dari Target Bulanan harus dihapus melalui `DELETE /api/performance/monthly-targets/{target}`.
-  - Item yang diproyeksikan dari Daily Task harus dihapus melalui endpoint Daily Task.
+- Plan yang terkunci tidak dapat diubah oleh pengguna biasa.
+- Item dari Target Bulanan harus dihapus melalui `DELETE /api/performance/monthly-targets/{target}`.
+- Item yang diproyeksikan dari Daily Task harus dihapus melalui endpoint Daily Task.
+- Target Harian yang dibuat langsung di bawah Weekly Target dapat dihapus melalui endpoint ini; Daily Task terhubung ikut di-soft-delete dan progres induk dihitung ulang.
+- Target Mingguan yang masih mempunyai Target Harian aktif ditolak dengan `422`; hapus turunannya terlebih dahulu.
 
 #### 4.6b Daily Task / Logbook Harian
 
@@ -846,7 +848,7 @@ Endpoint yang tersedia:
 - `GET /api/performance/daily-tasks?date=2026-10-20` — daftar per tanggal. Gunakan `from` dan `to` untuk rentang maksimal 93 hari; tersedia filter `status` dan `weekly_plan_item_id`.
 - `GET /api/performance/daily-tasks/{task}` — detail task.
 - `POST /api/performance/daily-tasks` — membuat task.
-- `PATCH /api/performance/daily-tasks/{task}` — mengubah task; `execution_status` wajib dikirim.
+- `PATCH /api/performance/daily-tasks/{task}` — mengubah task; `execution_status` wajib dikirim. Perubahan `due_at` pada Target Harian dari Weekly Target menyinkronkan tanggal kartu dan target sumbernya.
 - `PATCH /api/performance/daily-tasks/{task}/status` — mengubah status dengan body `{ "execution_status": "in_progress" }`.
 - `POST /api/performance/daily-tasks/{task}/carry-forward` — memindahkan task dengan body `{ "next_date": "2026-10-21" }` tanpa menghapus histori.
 - `DELETE /api/performance/daily-tasks/{task}` — soft-delete task.
@@ -867,8 +869,13 @@ Aturan:
 - Hanya pemilik task atau administrator yang dapat membaca atau mengubah task.
 - Jika `weekly_plan_item_id` kosong, server membuat proyeksi Weekly Plan pada pekan yang sesuai.
 - Weekly Plan yang sudah diajukan/dikunci menolak penambahan proyeksi mandiri.
+- Untuk Target Harian aktif yang dibuat dari Weekly Target, perubahan tanggal `due_at` memindahkan task yang sama: `work_date`, kolom hari, dan `target_date` Weekly Target ikut berubah, sedangkan jam deadline dipertahankan.
+- Untuk Daily Task mandiri, perubahan deadline ke tanggal berikutnya tetap memakai alur carry-forward agar histori task asal tidak hilang.
+- Deadline Sabtu/Minggu menggunakan kolom `Sabtu`/`Minggu`. Kedua kolom dibuat saat pertama dibutuhkan; client harus membaca `data.meta.kanban_columns` dan tidak mengasumsikan papan selalu hanya Senin–Jumat.
+- `kanban_column_id` hanya boleh memakai ID dari `data.meta.kanban_columns` milik pengguna aktif. Kolom khusus/non-hari hanya menjadi pengelompokan dan tidak mewakili perubahan tanggal.
+- Drag-and-drop pada web memakai endpoint internal web. Aplikasi mobile mengubah hari melalui `due_at` pada endpoint update, bukan dengan meniru URL internal web.
 - ID hapus dapat berasal dari `daily_tasks[].id` atau `items[].source_daily_task_id` pada respons Weekly Plan.
-- Menghapus task terakhir yang membentuk item Weekly Plan khusus juga menonaktifkan proyeksi tersebut.
+- Menghapus task terakhir yang membentuk item Weekly Plan khusus—termasuk Target Harian dari Weekly Target—juga menonaktifkan pasangan Weekly Plan tersebut dan menghitung ulang progres induknya.
 
 ---
 

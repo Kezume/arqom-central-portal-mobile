@@ -41,7 +41,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
     if (val is Map) {
       if (val['recorded'] == false) return fallback;
-      final possible = val['time'] ?? val['check_in'] ?? val['check_out'] ?? val['jam'] ?? val['formatted_time'];
+      final possible =
+          val['time'] ??
+          val['check_in'] ??
+          val['check_out'] ??
+          val['jam'] ??
+          val['formatted_time'];
       if (possible != null) {
         final s = possible.toString().trim();
         if (s.isNotEmpty) return s;
@@ -74,7 +79,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<void> _refreshData() async {
     setState(() {
-      _todayFuture = AttendanceService.getToday(employeeId: _selectedEmployeeId);
+      _todayFuture = AttendanceService.getToday(
+        employeeId: _selectedEmployeeId,
+      );
       _historyResponseFuture = AttendanceService.getHistory(
         month: _selectedCalendarMonth.month,
         year: _selectedCalendarMonth.year,
@@ -83,16 +90,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       );
     });
     try {
-      await Future.wait([
-        _todayFuture,
-        _historyResponseFuture,
-      ]);
+      await Future.wait([_todayFuture, _historyResponseFuture]);
     } catch (_) {}
   }
 
   void _prevCalendarMonth() {
     setState(() {
-      _selectedCalendarMonth = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month - 1, 1);
+      _selectedCalendarMonth = DateTime(
+        _selectedCalendarMonth.year,
+        _selectedCalendarMonth.month - 1,
+        1,
+      );
       _selectedCalendarDay = null;
       _historyResponseFuture = AttendanceService.getHistory(
         month: _selectedCalendarMonth.month,
@@ -105,7 +113,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   void _nextCalendarMonth() {
     setState(() {
-      _selectedCalendarMonth = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month + 1, 1);
+      _selectedCalendarMonth = DateTime(
+        _selectedCalendarMonth.year,
+        _selectedCalendarMonth.month + 1,
+        1,
+      );
       _selectedCalendarDay = null;
       _historyResponseFuture = AttendanceService.getHistory(
         month: _selectedCalendarMonth.month,
@@ -123,20 +135,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       body: ArtechPullToRefresh(
         onRefresh: _refreshData,
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildMiniHeader(context),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildInteractiveAttendanceCard(context),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
                     _buildStatisticsSummary(context),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
                     _buildAttendanceCalendarSection(context),
                   ],
                 ),
@@ -155,11 +169,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF091E47),
-            Color(0xFF0037B0),
-            Color(0xFF155DFC),
-          ],
+          colors: [Color(0xFF091E47), Color(0xFF0037B0), Color(0xFF155DFC)],
           stops: [0.0, 0.55, 1.0],
         ),
         borderRadius: BorderRadius.only(
@@ -210,70 +220,70 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Kehadiran',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
+                    Expanded(
+                      child: Text(
+                        'Kehadiran',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
                         ),
-                      ],
+                      ),
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.14),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              width: 1,
-                            ),
-                          ),
-                          child: ValueListenableBuilder<int>(
-                            valueListenable: NotificationsService.unreadCountNotifier,
-                            builder: (context, unreadCount, _) {
-                              const iconWidget = Icon(
-                                Icons.notifications_none_rounded,
-                                color: Colors.white,
-                                size: 21,
-                              );
-
-                              return IconButton(
-                                padding: EdgeInsets.zero,
-                                icon: unreadCount > 0
-                                    ? const Badge(
-                                        backgroundColor: Color(0xFFEF4444),
-                                        smallSize: 8,
-                                        child: iconWidget,
-                                      )
-                                    : iconWidget,
-                                onPressed: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                                  );
-                                  NotificationsService.refreshUnreadCount();
-                                },
-                              );
-                            },
-                          ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          width: 1,
                         ),
-                      ],
+                      ),
+                      child: ValueListenableBuilder<int>(
+                        valueListenable:
+                            NotificationsService.unreadCountNotifier,
+                        builder: (context, unreadCount, _) {
+                          const iconWidget = Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.white,
+                            size: 21,
+                          );
+
+                          return IconButton(
+                            padding: EdgeInsets.zero,
+                            icon:
+                                unreadCount > 0
+                                    ? const Badge(
+                                      backgroundColor: Color(0xFFEF4444),
+                                      smallSize: 8,
+                                      child: iconWidget,
+                                    )
+                                    : iconWidget,
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsScreen(),
+                                ),
+                              );
+                              NotificationsService.refreshUnreadCount();
+                            },
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Pantau jam kerja dan riwayat kehadiran',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     color: Colors.white.withValues(alpha: 0.78),
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
@@ -283,24 +293,48 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 if (_availableEmployees.length > 1) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                      ),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int?>(
                         isExpanded: true,
                         dropdownColor: const Color(0xFF0F2D67),
-                        value: _availableEmployees.any((e) => e.id == _selectedEmployeeId) ? _selectedEmployeeId : null,
-                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                        value:
+                            _availableEmployees.any(
+                                  (e) => e.id == _selectedEmployeeId,
+                                )
+                                ? _selectedEmployeeId
+                                : null,
+                        icon: const Icon(
+                          Icons.arrow_drop_down,
+                          color: Colors.white70,
+                        ),
                         hint: const Row(
                           children: [
-                            Icon(Icons.person_outline, size: 16, color: Colors.white),
+                            Icon(
+                              Icons.person_outline,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                             SizedBox(width: 8),
                             Expanded(
-                              child: Text('Presensi Saya Sendiri', style: TextStyle(fontSize: 12, color: Colors.white), overflow: TextOverflow.ellipsis),
+                              child: Text(
+                                'Presensi Saya Sendiri',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
@@ -309,10 +343,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             value: null,
                             child: Row(
                               children: [
-                                Icon(Icons.person_pin_rounded, size: 16, color: Colors.white),
+                                Icon(
+                                  Icons.person_pin_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
-                                  child: Text('Presensi Saya Sendiri', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white), overflow: TextOverflow.ellipsis),
+                                  child: Text(
+                                    'Presensi Saya Sendiri',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                             ),
@@ -322,7 +368,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               value: emp.id,
                               child: Text(
                                 '${emp.name} (${emp.position})',
-                                style: const TextStyle(fontSize: 12, color: Colors.white),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             );
@@ -332,7 +381,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           setState(() {
                             _selectedEmployeeId = newId;
                             if (newId != null) {
-                              _selectedEmployeeName = _availableEmployees.firstWhere((e) => e.id == newId).name;
+                              _selectedEmployeeName =
+                                  _availableEmployees
+                                      .firstWhere((e) => e.id == newId)
+                                      .name;
                             } else {
                               _selectedEmployeeName = null;
                             }
@@ -357,15 +409,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF091E47).withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: FutureBuilder<Map<String, dynamic>?>(
         future: _todayFuture,
@@ -373,13 +418,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 46),
-              child: Center(child: ArtechLoadingWidget(size: 48, showHalo: false)),
+              child: Center(
+                child: ArtechLoadingWidget(size: 48, showHalo: false),
+              ),
             );
           }
           if (snapshot.hasError) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
-              child: Center(child: Text('Data presensi belum dapat dimuat. Tarik untuk mencoba lagi.')),
+              child: Center(
+                child: Text(
+                  'Data presensi belum dapat dimuat. Tarik untuk mencoba lagi.',
+                ),
+              ),
             );
           }
 
@@ -389,44 +440,61 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           final hasIn = checkIn != '--:--';
           final hasOut = checkOut != '--:--';
           final rawRequest = data?['approved_request'];
-          final request = rawRequest is Map
-              ? AttendanceApprovedRequest.fromJson(rawRequest)
-              : null;
-          final isApproved = request != null ||
-              data?['status_source']?.toString().toLowerCase() == 'approved_request';
+          final request =
+              rawRequest is Map
+                  ? AttendanceApprovedRequest.fromJson(rawRequest)
+                  : null;
+          final isApproved =
+              request != null ||
+              data?['status_source']?.toString().toLowerCase() ==
+                  'approved_request';
           final rawStatus = data?['status']?.toString().trim() ?? '';
-          final rawBadge = data?['status_badge']?.toString().toLowerCase() ?? '';
+          final rawBadge =
+              data?['status_badge']?.toString().toLowerCase() ?? '';
           final status = _cleanStatus(
             isApproved
                 ? (request?.displayTitle ?? rawStatus)
-                : (rawStatus.isEmpty || rawStatus.toLowerCase() == 'belum presensi'
-                    ? (hasOut ? 'Presensi Lengkap' : hasIn ? 'Sudah Masuk' : 'Belum Presensi')
+                : (rawStatus.isEmpty ||
+                        rawStatus.toLowerCase() == 'belum presensi'
+                    ? (hasOut
+                        ? 'Presensi Lengkap'
+                        : hasIn
+                        ? 'Sudah Masuk'
+                        : 'Belum Presensi')
                     : rawStatus),
           );
           final statusColor = _getStatusColor(status, rawBadge);
           final statusBg = statusColor.withValues(alpha: 0.1);
-          final source = '${data?['source'] ?? ''} ${data?['source_label'] ?? ''}'.toLowerCase();
-          final isFingerSpot = source.contains('finger') || source.contains('mesin');
+          final source =
+              '${data?['source'] ?? ''} ${data?['source_label'] ?? ''}'
+                  .toLowerCase();
+          final isFingerSpot =
+              source.contains('finger') || source.contains('mesin');
           final schedule = data?['schedule'];
-          final target = schedule is Map ? _extractTimeStr(schedule['check_in_target'], fallback: '') : '';
+          final target =
+              schedule is Map
+                  ? _extractTimeStr(schedule['check_in_target'], fallback: '')
+                  : '';
           final targetTime = target.length >= 5 ? target.substring(0, 5) : '';
 
           final now = DateTime.now();
           final dateText = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
-          final normalizedStatus = isApproved && status.toLowerCase().contains('cuti')
-              ? 'Cuti'
-              : status;
-          final statusIcon = status.toLowerCase().contains('cuti')
-              ? Icons.beach_access_rounded
-              : status.toLowerCase().contains('izin')
+          final normalizedStatus =
+              isApproved && status.toLowerCase().contains('cuti')
+                  ? 'Cuti'
+                  : status;
+          final statusIcon =
+              status.toLowerCase().contains('cuti')
+                  ? Icons.beach_access_rounded
+                  : status.toLowerCase().contains('izin')
                   ? Icons.event_note_rounded
                   : status.toLowerCase().contains('sakit')
-                      ? Icons.medical_services_outlined
-                      : status.toLowerCase().contains('dinas')
-                          ? Icons.flight_takeoff_rounded
-                          : status.toLowerCase().contains('lembur')
-                              ? Icons.more_time_rounded
-                              : Icons.verified_outlined;
+                  ? Icons.medical_services_outlined
+                  : status.toLowerCase().contains('dinas')
+                  ? Icons.flight_takeoff_rounded
+                  : status.toLowerCase().contains('lembur')
+                  ? Icons.more_time_rounded
+                  : Icons.verified_outlined;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -434,7 +502,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: statusBg,
                     borderRadius: BorderRadius.circular(10),
@@ -480,8 +551,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.calendar_today_outlined,
-                      color: Color(0xFF64748B), size: 12),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    color: Color(0xFF64748B),
+                    size: 12,
+                  ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
@@ -512,7 +586,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 _buildApprovedSummary(request, statusColor)
               else
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 13),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 13,
+                    horizontal: 13,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(14),
@@ -522,21 +599,53 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     children: [
                       Row(
                         children: [
-                          Expanded(child: _buildAttendanceTime('Masuk', checkIn, hasIn, Icons.login_rounded)),
-                          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+                          Expanded(
+                            child: _buildAttendanceTime(
+                              'Masuk',
+                              checkIn,
+                              hasIn,
+                              Icons.login_rounded,
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 32,
+                            color: const Color(0xFFE2E8F0),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildAttendanceTime('Pulang', checkOut, hasOut, Icons.logout_rounded)),
+                          Expanded(
+                            child: _buildAttendanceTime(
+                              'Pulang',
+                              checkOut,
+                              hasOut,
+                              Icons.logout_rounded,
+                            ),
+                          ),
                         ],
                       ),
-                      if (hasIn && hasOut && _calculateDuration(checkIn, checkOut).isNotEmpty) ...[
+                      if (hasIn &&
+                          hasOut &&
+                          _calculateDuration(checkIn, checkOut).isNotEmpty) ...[
                         const Divider(height: 22, color: Color(0xFFE2E8F0)),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.timer_outlined, size: 15, color: Color(0xFF64748B)),
+                            const Icon(
+                              Icons.timer_outlined,
+                              size: 15,
+                              color: Color(0xFF64748B),
+                            ),
                             const SizedBox(width: 7),
-                            Flexible(child: Text('Durasi kerja: ${_calculateDuration(checkIn, checkOut)}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)))),
+                            Flexible(
+                              child: Text(
+                                'Durasi kerja: ${_calculateDuration(checkIn, checkOut)}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -550,7 +659,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   children: [
                     Icon(Icons.fingerprint, size: 14, color: Color(0xFF64748B)),
                     SizedBox(width: 5),
-                    Text('Tercatat melalui FingerSpot', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                    Text(
+                      'Tercatat melalui FingerSpot',
+                      style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                    ),
                   ],
                 ),
               ],
@@ -568,12 +680,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   String _cleanStatus(String raw) {
-    var value = raw.trim()
-        .replaceFirst(RegExp(r'^pengajuan\s+', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\s*\(ACC\)', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\b(disetujui)(?:\s+disetujui)+\b', caseSensitive: false), 'Disetujui')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
+    var value =
+        raw
+            .trim()
+            .replaceFirst(RegExp(r'^pengajuan\s+', caseSensitive: false), '')
+            .replaceAll(RegExp(r'\s*\(ACC\)', caseSensitive: false), '')
+            .replaceAll(
+              RegExp(r'\b(disetujui)(?:\s+disetujui)+\b', caseSensitive: false),
+              'Disetujui',
+            )
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
     if (value.isEmpty) value = 'Belum Presensi';
     return value;
   }
@@ -585,9 +702,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     bool recorded,
     IconData icon,
   ) {
-    final accent = label == 'Masuk'
-        ? const Color(0xFF16A34A)
-        : const Color(0xFF4F46E5);
+    final accent =
+        label == 'Masuk' ? const Color(0xFF16A34A) : const Color(0xFF4F46E5);
     const muted = Color(0xFF64748B);
 
     return Row(
@@ -596,16 +712,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: recorded
-                ? accent.withValues(alpha: 0.10)
-                : const Color(0xFFF1F5F9),
+            color:
+                recorded
+                    ? accent.withValues(alpha: 0.10)
+                    : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 17,
-            color: recorded ? accent : muted,
-          ),
+          child: Icon(icon, size: 17, color: recorded ? accent : muted),
         ),
         const SizedBox(width: 9),
         Expanded(
@@ -614,10 +727,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             children: [
               Text(
                 label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10,
-                  color: muted,
-                ),
+                style: GoogleFonts.plusJakartaSans(fontSize: 10, color: muted),
               ),
               const SizedBox(height: 2),
               Text(
@@ -638,10 +748,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   // Panel pengajuan disetujui mengikuti referensi kartu HomeScreen.
-  Widget _buildApprovedSummary(AttendanceApprovedRequest? request, Color color) {
+  Widget _buildApprovedSummary(
+    AttendanceApprovedRequest? request,
+    Color color,
+  ) {
     final number = request?.requestNumber?.trim() ?? '';
     final description = request?.description?.trim() ?? '';
-    final period = request?.formattedPeriod?.trim() ?? '';
+    final period = request?.formattedPeriod.trim() ?? '';
     const blue = Color(0xFF0037B0);
 
     return Container(
@@ -660,12 +773,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             const SizedBox(height: 10),
           ],
           if (period.isNotEmpty) ...[
-            _approvedInfo(Icons.calendar_month_outlined, 'Periode: $period', blue),
+            _approvedInfo(
+              Icons.calendar_month_outlined,
+              'Periode: $period',
+              blue,
+            ),
             const SizedBox(height: 10),
           ],
           if (description.isNotEmpty) ...[
-            _approvedInfo(Icons.notes_rounded, description, blue,
-                textColor: const Color(0xFF64748B)),
+            _approvedInfo(
+              Icons.notes_rounded,
+              description,
+              blue,
+              textColor: const Color(0xFF64748B),
+            ),
             const SizedBox(height: 12),
           ],
           Container(
@@ -730,17 +851,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
               ),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                      fontSize: 10,
-                    ),
-              ),
+              if (subtitle.isNotEmpty)
+                Text(
+                  subtitle,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFF64748B),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
             ],
           ),
         ),
@@ -751,7 +876,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               onTap: onTapAction,
               borderRadius: BorderRadius.circular(20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
@@ -770,10 +898,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     Text(
                       actionLabel,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -803,7 +931,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: ArtechLoadingWidget(size: 54, showHalo: false)),
+                child: Center(
+                  child: ArtechLoadingWidget(size: 54, showHalo: false),
+                ),
               );
             }
             if (snapshot.hasError || snapshot.data == null) {
@@ -820,23 +950,73 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               );
             }
-            final stats = snapshot.data!.statistics ?? AttendanceStatistics();
-            return LayoutBuilder(
-              builder: (context, constraints) => GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: constraints.maxWidth < 350 ? 2 : 3,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: constraints.maxWidth < 350 ? 1.65 : 1.15,
-              children: [
-                _buildStatCard(context, 'Hadir', '${stats.hadir}', Icons.check_circle, AppColors.secondary, AppColors.secondaryContainer.withOpacity(0.4)),
-                _buildStatCard(context, 'Terlambat', '${stats.terlambat}', Icons.schedule, Colors.orange[700]!, Colors.orange[100]!),
-                _buildStatCard(context, 'Cuti / Izin', '${stats.cuti + stats.izin}', Icons.beach_access, AppColors.primary, AppColors.primaryContainer.withOpacity(0.5)),
-                _buildStatCard(context, 'Sakit', '${stats.sakit}', Icons.medication, AppColors.onSurfaceVariant, AppColors.surfaceContainerHigh),
-                _buildStatCard(context, 'Dinas', '${stats.perjalananDinas}', Icons.flight_takeoff, AppColors.tertiary, AppColors.tertiaryContainer.withOpacity(0.5)),
-                _buildStatCard(context, 'Alpha', '${stats.tidakHadir}', Icons.cancel, AppColors.onSurfaceVariant, AppColors.surfaceContainerHigh),
-              ],
+            final stats = snapshot.data!.statistics;
+            return Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: LayoutBuilder(
+                builder:
+                    (context, constraints) => GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: constraints.maxWidth < 350 ? 2 : 3,
+                      childAspectRatio:
+                          constraints.maxWidth < 350 ? 2.15 : 1.55,
+                      children: [
+                        _buildStatCard(
+                          context,
+                          'Hadir',
+                          '${stats.hadir}',
+                          Icons.check_circle,
+                          AppColors.secondary,
+                          AppColors.secondaryContainer.withValues(alpha: 0.4),
+                        ),
+                        _buildStatCard(
+                          context,
+                          'Terlambat',
+                          '${stats.terlambat}',
+                          Icons.schedule,
+                          Colors.orange[700]!,
+                          Colors.orange[100]!,
+                        ),
+                        _buildStatCard(
+                          context,
+                          'Cuti / Izin',
+                          '${stats.cuti + stats.izin}',
+                          Icons.beach_access,
+                          AppColors.primary,
+                          AppColors.primaryContainer.withValues(alpha: 0.5),
+                        ),
+                        _buildStatCard(
+                          context,
+                          'Sakit',
+                          '${stats.sakit}',
+                          Icons.medication,
+                          AppColors.onSurfaceVariant,
+                          AppColors.surfaceContainerHigh,
+                        ),
+                        _buildStatCard(
+                          context,
+                          'Dinas',
+                          '${stats.perjalananDinas}',
+                          Icons.flight_takeoff,
+                          AppColors.tertiary,
+                          AppColors.tertiaryContainer.withValues(alpha: 0.5),
+                        ),
+                        _buildStatCard(
+                          context,
+                          'Alpha',
+                          '${stats.tidakHadir}',
+                          Icons.cancel,
+                          AppColors.onSurfaceVariant,
+                          AppColors.surfaceContainerHigh,
+                        ),
+                      ],
+                    ),
               ),
             );
           },
@@ -845,14 +1025,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color iconColor, Color iconBg) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withOpacity(0.5)),
-      ),
+  Widget _buildStatCard(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color iconColor,
+    Color iconBg,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -860,16 +1042,35 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               Container(
                 width: 24,
                 height: 24,
-                decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(icon, size: 14, color: iconColor),
               ),
             ],
           ),
-          Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: iconColor, fontWeight: FontWeight.w800)),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              color: iconColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );
@@ -888,17 +1089,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             _buildSectionHeader(
               context,
               'Kalender & Riwayat Presensi',
-              'Rincian harian',
+              '',
               actionLabel: 'Lihat Semua',
               actionIcon: Icons.arrow_forward_rounded,
               onTapAction: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AttendanceHistoryScreen(
-                      initialEmployeeId: _selectedEmployeeId,
-                      initialEmployeeName: _selectedEmployeeName,
-                    ),
+                    builder:
+                        (context) => AttendanceHistoryScreen(
+                          initialEmployeeId: _selectedEmployeeId,
+                          initialEmployeeName: _selectedEmployeeName,
+                        ),
                   ),
                 );
               },
@@ -913,7 +1115,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: const Center(
-                  child: ArtechLoadingWidget(size: 48, message: 'Memuat kalender presensi...'),
+                  child: ArtechLoadingWidget(
+                    size: 48,
+                    message: 'Memuat kalender presensi...',
+                  ),
                 ),
               )
             else ...[
@@ -924,7 +1129,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               // 2. Keterangan Titik Presensi (Legend)
               _buildCalendarLegend(),
               const SizedBox(height: 10),
-
             ],
           ],
         );
@@ -932,14 +1136,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  AttendanceHistoryItem? _getItemForDay(List<AttendanceHistoryItem> history, int day) {
+  AttendanceHistoryItem? _getItemForDay(
+    List<AttendanceHistoryItem> history,
+    int day,
+  ) {
     final dayStr = day.toString().padLeft(2, '0');
     final monthStr = _selectedCalendarMonth.month.toString().padLeft(2, '0');
     final targetDate = '${_selectedCalendarMonth.year}-$monthStr-$dayStr';
 
     for (final item in history) {
       if (item.date == targetDate) return item;
-      
     }
     return null;
   }
@@ -952,7 +1158,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Color? _getDotColorForDay(AttendanceHistoryItem? item, int day) {
-    final dt = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month, day);
+    final dt = DateTime(
+      _selectedCalendarMonth.year,
+      _selectedCalendarMonth.month,
+      day,
+    );
     final now = DateTime.now();
 
     // Jika hari masa depan dan belum ada catatan presensi
@@ -972,39 +1182,48 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     // 1. Libur
     if (item.isWeekend || item.isHoliday || s.contains('libur')) {
-      final hasScan = item.checkInTime != null &&
+      final hasScan =
+          item.checkInTime != null &&
           item.checkInTime!.isNotEmpty &&
           item.checkInTime != '--:--';
       if (!hasScan) return const Color(0xFF94A3B8); // Slate
     }
 
     // 2. Cuti
-    if (s.contains('cuti') || item.approvedRequest?.requestType?.contains('cuti') == true) {
+    if (s.contains('cuti') ||
+        item.approvedRequest?.requestType?.contains('cuti') == true) {
       return AppColors.primary; // Blue
     }
 
     // 3. Izin
-    if (s.contains('izin') || item.approvedRequest?.requestType?.contains('izin') == true) {
+    if (s.contains('izin') ||
+        item.approvedRequest?.requestType?.contains('izin') == true) {
       return Colors.orange.shade800; // Brown-orange
     }
 
     // 4. Sakit
-    if (s.contains('sakit') || item.approvedRequest?.requestType?.contains('sakit') == true) {
+    if (s.contains('sakit') ||
+        item.approvedRequest?.requestType?.contains('sakit') == true) {
       return AppColors.error; // Red
     }
 
     // 5. Perjalanan Dinas
-    if (s.contains('dinas') || item.approvedRequest?.requestType?.contains('dinas') == true) {
+    if (s.contains('dinas') ||
+        item.approvedRequest?.requestType?.contains('dinas') == true) {
       return const Color(0xFF7C3AED); // Purple
     }
 
     // 6. Lembur
-    if (s.contains('lembur') || item.approvedRequest?.requestType?.contains('lembur') == true) {
+    if (s.contains('lembur') ||
+        item.approvedRequest?.requestType?.contains('lembur') == true) {
       return const Color(0xFF4F46E5); // Indigo
     }
 
     // 7. Tidak Hadir / Alpha
-    if (s.contains('tidak') || s.contains('alpa') || s.contains('alpha') || cat == 'alpha_candidate') {
+    if (s.contains('tidak') ||
+        s.contains('alpa') ||
+        s.contains('alpha') ||
+        cat == 'alpha_candidate') {
       return const Color(0xFFDC2626); // Red
     }
 
@@ -1014,7 +1233,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
 
     // 9. Terlambat
-    if (s.contains('lambat') || item.lateMinutes > 0 || cat == 'late' || cat == 'terlambat' || cat == 'very_late') {
+    if (s.contains('lambat') ||
+        item.lateMinutes > 0 ||
+        cat == 'late' ||
+        cat == 'terlambat' ||
+        cat == 'very_late') {
       return const Color(0xFFD97706); // Amber
     }
 
@@ -1026,7 +1249,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final s = status.toLowerCase();
     final b = (badge ?? '').toLowerCase();
 
-    if (s.contains('tepat') || (s.contains('hadir') && !s.contains('lambat') && !s.contains('tidak'))) {
+    if (s.contains('tepat') ||
+        (s.contains('hadir') &&
+            !s.contains('lambat') &&
+            !s.contains('tidak'))) {
       return const Color(0xFF16A34A);
     }
     if (s.contains('lambat') || b.contains('warning')) {
@@ -1047,7 +1273,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (s.contains('lembur')) {
       return const Color(0xFF4F46E5);
     }
-    if (s.contains('tidak') || s.contains('sakit') || s.contains('alpa') || s.contains('alpha') || b.contains('danger') || b.contains('error')) {
+    if (s.contains('tidak') ||
+        s.contains('sakit') ||
+        s.contains('alpa') ||
+        s.contains('alpha') ||
+        b.contains('danger') ||
+        b.contains('error')) {
       return const Color(0xFFDC2626);
     }
     if (s.contains('libur')) {
@@ -1057,8 +1288,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildMonthlyCalendarCard(List<AttendanceHistoryItem> historyList) {
-    final daysInMonth = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month + 1, 0).day;
-    final firstDayWeekday = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month, 1).weekday;
+    final daysInMonth =
+        DateTime(
+          _selectedCalendarMonth.year,
+          _selectedCalendarMonth.month + 1,
+          0,
+        ).day;
+    final firstDayWeekday =
+        DateTime(
+          _selectedCalendarMonth.year,
+          _selectedCalendarMonth.month,
+          1,
+        ).weekday;
     final startOffset = (firstDayWeekday - 1) % 7;
     final totalCells = ((startOffset + daysInMonth + 6) ~/ 7) * 7;
     const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -1067,15 +1308,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1105,7 +1339,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        DateFormat('MMMM yyyy', 'id_ID').format(_selectedCalendarMonth),
+                        DateFormat(
+                          'MMMM yyyy',
+                          'id_ID',
+                        ).format(_selectedCalendarMonth),
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -1141,7 +1378,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
-                      color: isWeekend ? const Color(0xFFEF4444) : const Color(0xFF64748B),
+                      color:
+                          isWeekend
+                              ? const Color(0xFFEF4444)
+                              : const Color(0xFF64748B),
                     ),
                   ),
                 ),
@@ -1177,21 +1417,31 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               return InkWell(
                 onTap: () {
                   setState(() => _selectedCalendarDay = dayNumber);
-                  final dayDate = DateTime(_selectedCalendarMonth.year, _selectedCalendarMonth.month, dayNumber);
+                  final dayDate = DateTime(
+                    _selectedCalendarMonth.year,
+                    _selectedCalendarMonth.month,
+                    dayNumber,
+                  );
                   _showDayDetailModal(context, item, dayDate);
                 },
                 borderRadius: BorderRadius.circular(10),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : (isToday ? AppColors.primary.withValues(alpha: 0.08) : Colors.transparent),
+                    color:
+                        isSelected
+                            ? AppColors.primary
+                            : (isToday
+                                ? AppColors.primary.withValues(alpha: 0.08)
+                                : Colors.transparent),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : (isToday ? AppColors.primary.withValues(alpha: 0.6) : Colors.transparent),
+                      color:
+                          isSelected
+                              ? AppColors.primary
+                              : (isToday
+                                  ? AppColors.primary.withValues(alpha: 0.6)
+                                  : Colors.transparent),
                       width: isToday || isSelected ? 1.5 : 1.0,
                     ),
                   ),
@@ -1206,10 +1456,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             '$dayNumber',
                             style: TextStyle(
                               fontSize: 13,
-                              fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w600,
-                              color: isSelected
-                                  ? Colors.white
-                                  : (index % 7 >= 5 ? const Color(0xFFEF4444) : const Color(0xFF1E293B)),
+                              fontWeight:
+                                  isSelected || isToday
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
+                              color:
+                                  isSelected
+                                      ? Colors.white
+                                      : (index % 7 >= 5
+                                          ? const Color(0xFFEF4444)
+                                          : const Color(0xFF1E293B)),
                             ),
                           ),
                         ),
@@ -1250,15 +1506,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1324,7 +1573,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   String _calculateDuration(String? checkIn, String? checkOut) {
-    if (checkIn == null || checkOut == null || checkIn.isEmpty || checkOut.isEmpty || checkIn == '--:--' || checkOut == '--:--') {
+    if (checkIn == null ||
+        checkOut == null ||
+        checkIn.isEmpty ||
+        checkOut.isEmpty ||
+        checkIn == '--:--' ||
+        checkOut == '--:--') {
       return '';
     }
     try {
@@ -1350,23 +1604,31 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     AttendanceHistoryItem? item,
     DateTime dayDate,
   ) {
-    final statusColor = item != null
-        ? _getStatusColor(item.status, item.statusBadge)
-        : (dayDate.weekday >= 6 ? const Color(0xFF94A3B8) : AppColors.primary);
-    final isLate = item != null &&
+    final statusColor =
+        item != null
+            ? _getStatusColor(item.status, item.statusBadge)
+            : (dayDate.weekday >= 6
+                ? const Color(0xFF94A3B8)
+                : AppColors.primary);
+    final isLate =
+        item != null &&
         (item.status.toLowerCase().contains('lambat') || item.lateMinutes > 0);
-    final bool hasScan = item != null &&
+    final bool hasScan =
+        item != null &&
         ((item.checkInTime != null &&
                 item.checkInTime!.isNotEmpty &&
                 item.checkInTime != '--:--') ||
             (item.checkOutTime != null &&
                 item.checkOutTime!.isNotEmpty &&
                 item.checkOutTime != '--:--'));
-    final String duration = item != null
-        ? _calculateDuration(item.formattedCheckIn, item.formattedCheckOut)
-        : '';
-    final dateFormatted =
-        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(dayDate);
+    final String duration =
+        item != null
+            ? _calculateDuration(item.formattedCheckIn, item.formattedCheckOut)
+            : '';
+    final dateFormatted = DateFormat(
+      'EEEE, d MMMM yyyy',
+      'id_ID',
+    ).format(dayDate);
 
     showModalBottomSheet(
       context: context,
@@ -1496,7 +1758,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             ],
                           ),
                         )
-                      else if (!item.isApprovedRequest && item.sourceLabel != null &&
+                      else if (!item.isApprovedRequest &&
+                          item.sourceLabel != null &&
                           item.sourceLabel!.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -1524,7 +1787,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
                   // Pengajuan ACC detail jika ada
                   if (item.isApprovedRequest &&
-                      item.approvedRequest?.description?.trim().isNotEmpty == true) ...[
+                      item.approvedRequest?.description?.trim().isNotEmpty ==
+                          true) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -1537,7 +1801,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (item.approvedRequest?.description != null &&
-                              item.approvedRequest!.description!.isNotEmpty) ...[
+                              item
+                                  .approvedRequest!
+                                  .description!
+                                  .isNotEmpty) ...[
                             Text(
                               item.approvedRequest!.description!,
                               style: const TextStyle(
@@ -1601,9 +1868,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: isLate
-                                          ? const Color(0xFFD97706)
-                                          : const Color(0xFF1E293B),
+                                      color:
+                                          isLate
+                                              ? const Color(0xFFD97706)
+                                              : const Color(0xFF1E293B),
                                     ),
                                   ),
                                 ),
@@ -1761,7 +2029,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   if (item.notes != null &&
                       item.notes!.trim().isNotEmpty &&
                       item.notes!.trim().toLowerCase() !=
-                          (item.approvedRequest?.description ?? '').trim().toLowerCase()) ...[
+                          (item.approvedRequest?.description ?? '')
+                              .trim()
+                              .toLowerCase()) ...[
                     const SizedBox(height: 10),
                     Container(
                       width: double.infinity,
@@ -1771,7 +2041,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        item.notes!.trim().replaceFirst(RegExp(r'^catatan:\s*', caseSensitive: false), ''),
+                        item.notes!.trim().replaceFirst(
+                          RegExp(r'^catatan:\s*', caseSensitive: false),
+                          '',
+                        ),
                         style: const TextStyle(
                           fontSize: 11.5,
                           color: Color(0xFF475569),
@@ -1859,11 +2132,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Menyiapkan file laporan absensi...')),
     );
-    
+
     final targetMonth = _selectedCalendarMonth.month;
     final targetYear = _selectedCalendarMonth.year;
-    final monthName = DateFormat('MMMM yyyy', 'id_ID').format(_selectedCalendarMonth);
-    
+    final monthName = DateFormat(
+      'MMMM yyyy',
+      'id_ID',
+    ).format(_selectedCalendarMonth);
+
     String? csvString;
     try {
       csvString = await AttendanceService.exportAttendanceCSV(
@@ -1878,24 +2154,37 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (csvString == null || !context.mounted) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal mengunduh laporan. Coba lagi nanti.'), backgroundColor: AppColors.error),
+          const SnackBar(
+            content: Text('Gagal mengunduh laporan. Coba lagi nanti.'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
       return;
     }
-    
+
     try {
       final tempDir = await getTemporaryDirectory();
-      final empSuffix = _selectedEmployeeName != null ? '_${_selectedEmployeeName!.replaceAll(' ', '_')}' : '';
-      final file = File('${tempDir.path}/Rekapan_Absensi_${targetMonth}_$targetYear$empSuffix.csv');
+      final empSuffix =
+          _selectedEmployeeName != null
+              ? '_${_selectedEmployeeName!.replaceAll(' ', '_')}'
+              : '';
+      final file = File(
+        '${tempDir.path}/Rekapan_Absensi_${targetMonth}_$targetYear$empSuffix.csv',
+      );
       await file.writeAsString(csvString);
-      
+
       final xFile = XFile(file.path);
-      await Share.shareXFiles([xFile], text: 'Laporan Absensi Periode $monthName');
+      await SharePlus.instance.share(
+        ShareParams(files: [xFile], text: 'Laporan Absensi Periode $monthName'),
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan atau membagikan file: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Gagal menyimpan atau membagikan file: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }

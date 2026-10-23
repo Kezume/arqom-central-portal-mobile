@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/artech_loading_widget.dart';
 import '../../data/models/performance_models.dart';
 import '../../data/performance_service.dart';
+import 'performance_paginated_list.dart';
 
 class WeeklyReviewTab extends StatefulWidget {
   final VoidCallback onDataChanged;
@@ -19,6 +20,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   bool _isSubmitting = false;
   String? _errorMessage;
   WeeklyReviewData? _reviewData;
+  int _requestSerial = 0;
 
   DateTime _currentWeekDate = DateTime.now();
 
@@ -33,6 +35,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   final Map<int, int> _initialProgress = {};
   final Map<int, String> _initialObstacle = {};
   final Map<int, String> _initialImprovement = {};
+  final Set<int> _expandedParentIds = {};
 
   @override
   void initState() {
@@ -56,6 +59,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   }
 
   Future<void> _fetchData({bool silent = false}) async {
+    final requestSerial = ++_requestSerial;
     if (!silent) {
       setState(() {
         _isLoading = true;
@@ -66,17 +70,17 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     final dateStr = _formatDate(_currentWeekDate);
     final res = await PerformanceService.getWeeklyReview(weekDate: dateStr);
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        if (res.success && res.data != null) {
-          _reviewData = res.data;
-          _initLocalFormState(res.data!);
-        } else {
-          _errorMessage = res.message;
-        }
-      });
-    }
+    if (!mounted || requestSerial != _requestSerial) return;
+
+    setState(() {
+      _isLoading = false;
+      if (res.success && res.data != null) {
+        _reviewData = res.data;
+        _initLocalFormState(res.data!);
+      } else {
+        _errorMessage = res.message;
+      }
+    });
   }
 
   /// Mendapatkan semua item yang dapat direview sesuai aturan API:
@@ -113,6 +117,14 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     _initialProgress.clear();
     _initialObstacle.clear();
     _initialImprovement.clear();
+
+    final activeParentIds = <int>{};
+    for (final plan in data.plans) {
+      activeParentIds.addAll(
+        plan.items.where((item) => item.hasSubItems).map((item) => item.id),
+      );
+    }
+    _expandedParentIds.removeWhere((id) => !activeParentIds.contains(id));
 
     for (final plan in data.plans) {
       for (final item in plan.items) {
@@ -237,6 +249,25 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         const SnackBar(
           content: Text('Tidak ada item untuk dievaluasi pada pekan ini.'),
           backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final missingObstacle =
+        reviewable.where((item) {
+          final status = _itemStatus[item.id] ?? item.executionStatus;
+          return status != 'completed' &&
+              (_obstacleControllers[item.id]?.text.trim().isEmpty ?? true);
+        }).toList();
+    if (missingObstacle.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Isi kendala untuk ${missingObstacle.length} item yang belum selesai sebelum menyimpan.',
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -575,6 +606,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
     if (data == null) return const SizedBox.shrink();
 
     final reviewable = _reviewableItems;
+    final reviewSections = data.plans
+        .expand((plan) => plan.items)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -587,46 +621,12 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         _buildSummaryScorecard(data.summary),
         const SizedBox(height: 16),
 
-        // Guidelines Card
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0037B0).withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFF0037B0).withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.info_outline_rounded,
-                size: 18,
-                color: Color(0xFF0037B0),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Aturan Evaluasi: Evaluasi dilakukan pada sub-target jika target mempunyai rincian sub-target. Jika status "Selesai", progres otomatis 100% dan isi rencana perbaikan. Jika "Sedang Berjalan", isi kendala. Status target induk akan dihitung otomatis oleh sistem.',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    color: const Color(0xFF475569),
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-
         // Section Title
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Item Evaluasi Mingguan (${reviewable.length})',
+              'Evaluasi (${reviewable.length})',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
@@ -640,14 +640,18 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
         if (reviewable.isEmpty)
           _buildEmptyState()
         else ...[
-          // Render item per plan group
-          ...data.plans.expand((plan) => plan.items).map((item) {
-            if (item.hasSubItems) {
-              return _buildParentTargetSection(item);
-            } else {
+          PerformancePaginatedList<WeeklyReviewItem>(
+            items: reviewSections,
+            resetKey: data.week.start,
+            spacing: 0,
+            itemLabel: 'evaluasi',
+            itemBuilder: (context, item, index) {
+              if (item.hasSubItems) {
+                return _buildParentTargetSection(item);
+              }
               return _buildReviewItemCard(item);
-            }
-          }),
+            },
+          ),
           const SizedBox(height: 16),
 
           // Submit Batch Button (Only visible when user makes changes)
@@ -667,7 +671,9 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                         onPressed: _isSubmitting ? null : _submitBatchReview,
                         icon: const Icon(Icons.send_rounded, size: 18),
                         label: Text(
-                          'Simpan Sekaligus (${reviewable.length} Item Evaluasi)',
+                          'Simpan ${reviewable.length} Item Evaluasi',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
@@ -737,7 +743,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Jadwal Review Akhir Pekan',
+                  'Jadwal Evaluasi Mingguan',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     color: const Color(0xFF64748B),
@@ -763,7 +769,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              isUpcoming ? 'UPCOMING' : 'AKTIF',
+              isUpcoming ? 'TERJADWAL' : 'AKTIF',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -899,6 +905,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   /// Status dan progresnya dihitung otomatis dari seluruh sub-target
   Widget _buildParentTargetSection(WeeklyReviewItem parent) {
     final priorityColor = _getPriorityColor(parent.priority);
+    final isExpanded = _expandedParentIds.contains(parent.id);
 
     final subItems = parent.subItems;
     final totalSubs = subItems.length;
@@ -1010,7 +1017,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'TARGET INDUK',
+                                  'INDUK',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w800,
@@ -1095,75 +1102,72 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFFCBD5E1),
-                      width: 0.8,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        if (isExpanded) {
+                          _expandedParentIds.remove(parent.id);
+                        } else {
+                          _expandedParentIds.add(parent.id);
+                        }
+                      });
+                    },
+                    icon: Icon(
+                      isExpanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 18,
                     ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 1),
-                        child: Icon(
-                          Icons.info_outline_rounded,
-                          size: 14,
-                          color: Color(0xFF0037B0),
-                        ),
+                    label: Text(
+                      isExpanded
+                          ? 'Sembunyikan sub-target'
+                          : 'Tampilkan $totalSubs sub-target',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'Target induk dihitung otomatis oleh sistem. Kolom evaluasi status, kendala (obstacle), dan rencana perbaikan diisi pada masing-masing sub-target di bawah.',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF475569),
-                            height: 1.3,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF0037B0),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: const Size(44, 40),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+          if (isExpanded) ...[
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
 
-          // Daftar Sub-target
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Sub-target Yang Dievaluasi (${parent.subItems.length})',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF334155),
+            // Daftar Sub-target
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8),
+                    child: Text(
+                      'Sub-target yang dievaluasi (${parent.subItems.length})',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF334155),
+                      ),
                     ),
                   ),
-                ),
-                ...parent.subItems.map(
-                  (sub) => _buildReviewItemCard(sub, isSubItem: true),
-                ),
-              ],
+                  ...parent.subItems.map(
+                    (sub) => _buildReviewItemCard(sub, isSubItem: true),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1252,7 +1256,7 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
                               ),
                               const SizedBox(width: 2),
                               Text(
-                                'SUB-TARGET',
+                                'RINCIAN',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 8.5,
                                   fontWeight: FontWeight.w700,
@@ -1366,32 +1370,55 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
               ),
             ),
             const SizedBox(height: 6),
-            Row(
-              children: [
-                _buildStatusChoice(
-                  item.id,
-                  'completed',
-                  'Selesai',
-                  Colors.green,
-                  Icons.check_circle_outline_rounded,
-                ),
-                const SizedBox(width: 6),
-                _buildStatusChoice(
-                  item.id,
-                  'in_progress',
-                  'Berjalan',
-                  const Color(0xFF0037B0),
-                  Icons.timelapse_rounded,
-                ),
-                const SizedBox(width: 6),
-                _buildStatusChoice(
-                  item.id,
-                  'not_started',
-                  'Belum',
-                  const Color(0xFF64748B),
-                  Icons.cancel_outlined,
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final choices = [
+                  _buildStatusChoice(
+                    item.id,
+                    'completed',
+                    'Selesai',
+                    Colors.green,
+                    Icons.check_circle_outline_rounded,
+                  ),
+                  _buildStatusChoice(
+                    item.id,
+                    'in_progress',
+                    'Berjalan',
+                    const Color(0xFF0037B0),
+                    Icons.timelapse_rounded,
+                  ),
+                  _buildStatusChoice(
+                    item.id,
+                    'not_started',
+                    'Belum Mulai',
+                    const Color(0xFF64748B),
+                    Icons.cancel_outlined,
+                  ),
+                ];
+
+                if (constraints.maxWidth < 330) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      choices[0],
+                      const SizedBox(height: 6),
+                      choices[1],
+                      const SizedBox(height: 6),
+                      choices[2],
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: choices[0]),
+                    const SizedBox(width: 6),
+                    Expanded(child: choices[1]),
+                    const SizedBox(width: 6),
+                    Expanded(child: choices[2]),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
 
@@ -1601,48 +1628,46 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
   ) {
     final isSelected = (_itemStatus[itemId] ?? '') == value;
 
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _onStatusChanged(itemId, value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-          decoration: BoxDecoration(
-            color:
-                isSelected
-                    ? activeColor.withValues(alpha: 0.12)
-                    : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? activeColor : const Color(0xFFE2E8F0),
-              width: 1.5,
-            ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _onStatusChanged(itemId, value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? activeColor.withValues(alpha: 0.12)
+                  : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? activeColor : const Color(0xFFE2E8F0),
+            width: 1.5,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 13,
-                color: isSelected ? activeColor : const Color(0xFF64748B),
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10.5,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? activeColor : const Color(0xFF64748B),
-                  ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 13,
+              color: isSelected ? activeColor : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? activeColor : const Color(0xFF64748B),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1663,12 +1688,12 @@ class _WeeklyReviewTabState extends State<WeeklyReviewTab> {
           Icon(Icons.rate_review_outlined, size: 48, color: AppColors.outline),
           SizedBox(height: 12),
           Text(
-            'Tidak Ada Item Evaluasi',
+            'Belum ada evaluasi',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           SizedBox(height: 4),
           Text(
-            'Belum ada aktivitas mingguan yang terdaftar pada pekan ini untuk dievaluasi.',
+            'Tidak ada aktivitas untuk pekan ini.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
           ),
