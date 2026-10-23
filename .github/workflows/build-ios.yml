@@ -34,30 +34,36 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
+      - name: Configure iOS project
+        shell: bash
+        run: |
+          flutter config --no-enable-swift-package-manager
+          flutter build ios --release --config-only --no-codesign
+          pod install --project-directory=ios
+
       - name: Build unsigned iOS app
         shell: bash
         run: |
-          set +e
-          flutter build ios --release --no-codesign
-          flutter_status=$?
-          set -e
-
-          app_path="build/ios/iphoneos/Runner.app"
-          if [[ $flutter_status -ne 0 && ! -d "$app_path" ]]; then
-            echo "Flutter build failed and Runner.app was not produced." >&2
-            exit "$flutter_status"
-          fi
-
-          if [[ $flutter_status -ne 0 ]]; then
-            echo "::warning::Flutter rejected the unsigned device build after Xcode completed. Runner.app exists, so IPA packaging will continue."
-          fi
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$GITHUB_WORKSPACE/build/ios/derived-data" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
 
       # An IPA is a ZIP archive containing Payload/Runner.app. Packaging the
       # unsigned app directly avoids Xcode's Development Team requirement.
       - name: Package unsigned IPA
         shell: bash
         run: |
-          app_path="build/ios/iphoneos/Runner.app"
+          app_path="build/ios/derived-data/Build/Products/Release-iphoneos/Runner.app"
           if [[ ! -d "$app_path" ]]; then
             echo "Runner.app was not found at $app_path" >&2
             exit 1
