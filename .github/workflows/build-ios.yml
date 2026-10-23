@@ -34,19 +34,15 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Build unsigned iOS archive
-        run: flutter build ipa --no-codesign
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
 
-      # Flutter may only create an unsigned .xcarchive when code signing is
-      # disabled. Package Runner.app manually so Sideloadly receives an IPA.
-      - name: Package unsigned IPA when needed
+      # An IPA is a ZIP archive containing Payload/Runner.app. Packaging the
+      # unsigned app directly avoids Xcode's Development Team requirement.
+      - name: Package unsigned IPA
         shell: bash
         run: |
-          if compgen -G "build/ios/ipa/*.ipa" > /dev/null; then
-            exit 0
-          fi
-
-          app_path="build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app"
+          app_path="build/ios/iphoneos/Runner.app"
           if [[ ! -d "$app_path" ]]; then
             echo "Runner.app was not found at $app_path" >&2
             exit 1
