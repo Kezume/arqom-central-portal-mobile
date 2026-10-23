@@ -1,0 +1,68 @@
+name: Build unsigned iOS IPA
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Build iOS IPA (unsigned)
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build unsigned iOS archive
+        run: flutter build ipa --no-codesign
+
+      # Flutter may only create an unsigned .xcarchive when code signing is
+      # disabled. Package Runner.app manually so Sideloadly receives an IPA.
+      - name: Package unsigned IPA when needed
+        shell: bash
+        run: |
+          if compgen -G "build/ios/ipa/*.ipa" > /dev/null; then
+            exit 0
+          fi
+
+          app_path="build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app"
+          if [[ ! -d "$app_path" ]]; then
+            echo "Runner.app was not found at $app_path" >&2
+            exit 1
+          fi
+
+          package_dir="$RUNNER_TEMP/unsigned-ipa"
+          mkdir -p "$package_dir/Payload" build/ios/ipa
+          cp -R "$app_path" "$package_dir/Payload/Runner.app"
+          (
+            cd "$package_dir"
+            zip -qry "$GITHUB_WORKSPACE/build/ios/ipa/central-portal-mobile-unsigned.ipa" Payload
+          )
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: central-portal-mobile-ios-unsigned
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
